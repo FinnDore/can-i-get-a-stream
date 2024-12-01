@@ -1,6 +1,7 @@
 use std::{path::PathBuf, process::exit};
 
 use axum::{
+    body::Body,
     extract::{Path, Request},
     http::{request::Parts, HeaderValue},
     response::IntoResponse,
@@ -8,7 +9,6 @@ use axum::{
     Router,
 };
 use hyper::StatusCode;
-use tower::util::ServiceExt;
 use tower_http::cors::{AllowOrigin, CorsLayer};
 use tracing::{error, info, instrument};
 
@@ -40,7 +40,7 @@ async fn main() {
 
 #[instrument()]
 async fn stream(Path(stream_id): Path<String>) -> impl IntoResponse {
-    info!(stream_id, "Serving streamId {}", stream_id);
+    info!("Serving stream");
     let path = format!("resources/{}/index.m3u8", stream_id);
     match tokio::fs::read_to_string(PathBuf::from(&path)).await {
         Ok(file) => Ok(file),
@@ -51,16 +51,16 @@ async fn stream(Path(stream_id): Path<String>) -> impl IntoResponse {
     }
 }
 
-#[instrument(skip(request))]
-async fn serve_segemnt(
-    Path((stream_id, segment_id)): Path<(String, String)>,
-    request: Request,
-) -> impl IntoResponse {
-    info!(
-        segment_id,
-        "Serving segemnt for streamId: {} segmentId: {}", stream_id, segment_id
-    );
+#[instrument()]
+async fn serve_segemnt(Path((stream_id, segment_id)): Path<(String, String)>) -> impl IntoResponse {
+    info!("Serving segemnt");
     let path = format!("resources/{}/{}", stream_id, segment_id);
-    let serve_file = tower_http::services::fs::ServeFile::new(path);
-    serve_file.oneshot(request).await
+
+    match tokio::fs::File::open(PathBuf::from(&path)).await {
+        Ok(file) => Ok(Body::from_stream(tokio_util::io::ReaderStream::new(file))),
+        Err(err) => {
+            error!(?err, path, "Failed to open stream segemnt {}", err);
+            return Err(StatusCode::NOT_FOUND);
+        }
+    }
 }
