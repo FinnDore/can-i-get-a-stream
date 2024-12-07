@@ -1,4 +1,4 @@
-function SharkWater(props: {
+export function SharkWaterIcon(props: {
   fill?: string;
   secondaryfill?: string;
   strokewidth?: string;
@@ -34,5 +34,3 @@ function SharkWater(props: {
     </svg>
   );
 }
-
-export default SharkWater;
