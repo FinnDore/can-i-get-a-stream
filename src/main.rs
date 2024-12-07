@@ -41,7 +41,7 @@ async fn main() {
 #[instrument()]
 async fn stream(Path(stream_id): Path<String>) -> impl IntoResponse {
     info!("Serving stream");
-    let path = format!("resources/{}/index.m3u8", stream_id);
+    let path = format!("resources/{}/index.m3u8a", stream_id);
     match tokio::fs::read_to_string(PathBuf::from(&path)).await {
         Ok(file) => Ok(file),
         Err(err) => {
