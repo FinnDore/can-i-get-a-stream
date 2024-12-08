@@ -66,13 +66,18 @@ function VideoPlayer() {
     hls.on(Hls.Events.MEDIA_ATTACHED, () => {
       // setTimeout(() => void videoRef.current?.play(), 1000);
     });
+    window.addEventListener("keyup", (e) => {
+      if (e.key === " ") {
+        void videoRef.current?.play();
+      }
+    });
   }, []);
 
   return (
     <video
       autoPlay
       ref={videoRef}
-      className="mx-auto aspect-auto w-full max-w-[300px] rounded-md border border-black/30"
+      className="mx-auto aspect-auto w-full rounded-md border border-black/30"
       controls={false}
     />
   );
@@ -136,37 +141,50 @@ export const Pfp = forwardRef<
   );
 });
 
+const MouseDownType = {
+  RESIZE: "RESIZE",
+  DRAG: "DRAG",
+} as const;
+
+type MouseDownType = (typeof MouseDownType)[keyof typeof MouseDownType];
 function Pip(props: { className?: string; children: React.ReactNode }) {
+  const [detachedSize, setDetachedSize] = useState(300);
   const [detatched, setDetatched] = useState(false);
-  const [mouseDown, setMouseDown] = useState(false);
+  const [mouseDown, setMouseDown] = useState<MouseDownType | null>(null);
   const [xy, setXY] = useState<{ x: number; y: number } | null>(null);
   const [offset, setOffset] = useState<{ x: number; y: number } | null>(null);
   const pipRef = useRef<HTMLDivElement>(null);
   const spring = useSpring({
-    scale: mouseDown ? 1.1 : 1,
-    config: config.stiff,
+    scale: mouseDown === "DRAG" ? 1.1 : 1,
+    config: detatched ? config.stiff : config.wobbly,
   });
 
   useEffect(() => {
     if (typeof window === "undefined") return;
 
     const onUnfocus = () => setMouseDown(false);
-    window.addEventListener("blur", onUnfocus);
+    window.addEventListener("mouseup", onUnfocus);
 
     return () => {
-      window.removeEventListener("blur", onUnfocus);
+      window.removeEventListener("mouseup", onUnfocus);
     };
   }, []);
+
   useEffect(() => {
     if (!mouseDown) return;
 
     const onMouseMove = (e: MouseEvent) => {
       if (!pipRef.current || !window) return;
 
-      // const boundingRect = pipRef.current.getBoundingClientRect();
-      const x = Math.max(e.clientX - (offset?.x ?? 0), 0);
-      const y = Math.max(e.clientY - (offset?.y ?? 0), 0);
-      setXY({ x, y });
+      if (mouseDown === "RESIZE") {
+        const boundingRect = pipRef.current.getBoundingClientRect();
+        setDetachedSize(Math.max(e.clientX - boundingRect.left, 150));
+        return;
+      } else if (mouseDown === "DRAG") {
+        const x = Math.max(e.clientX - (offset?.x ?? 0), 0);
+        const y = Math.max(e.clientY - (offset?.y ?? 0), 0);
+        setXY({ x, y });
+      }
     };
 
     window.addEventListener("mousemove", onMouseMove);
@@ -177,16 +195,17 @@ function Pip(props: { className?: string; children: React.ReactNode }) {
   }, [mouseDown]);
 
   return (
-    <div className={clsx("relative", props.className)}>
+    <div className={clsx("relative", props.className, {})}>
       <div
         style={{
           position: detatched && xy ? "fixed" : "relative",
           left: detatched && xy ? xy.x : 0,
           top: detatched && xy ? xy.y : 0,
+          width: detatched ? `${detachedSize}px` : undefined,
         }}
         ref={pipRef}
         onMouseDown={(e) => {
-          setMouseDown(true);
+          setMouseDown("DRAG");
           setDetatched(true);
           const boundingRect = pipRef.current?.getBoundingClientRect();
           if (!boundingRect) return;
@@ -195,27 +214,37 @@ function Pip(props: { className?: string; children: React.ReactNode }) {
             y: e.clientY - boundingRect.top,
           });
         }}
-        onMouseUp={(e) => {
-          setMouseDown(false);
-        }}
         onClick={(e) => {
           if (e.metaKey || e.ctrlKey) {
+            setDetachedSize(300);
             setDetatched(false);
             setOffset(null);
             setXY(null);
           }
         }}
       >
-        <animated.div style={spring}>{props.children}</animated.div>
+        <animated.div style={spring} className="aspect-auto w-full">
+          {props.children}
+        </animated.div>
+        <div
+          className="absolute right-0 bottom-0 h-4 w-4 cursor-se-resize"
+          onMouseDown={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            setMouseDown("RESIZE");
+          }}
+        ></div>
       </div>
       {detatched && xy && (
         <div
-          className="aspect-auto h-[120px] w-full rounded-md border border-dashed border-black/20 bg-black/5"
+          className="grid aspect-auto h-[120px] w-full place-items-center rounded-md border border-dashed border-black/20 bg-black/5 text-xs font-bold text-gray-400"
           onClick={(e) => {
             e.stopPropagation();
             setDetatched(false);
           }}
-        />
+        >
+          video detached
+        </div>
       )}
     </div>
   );
