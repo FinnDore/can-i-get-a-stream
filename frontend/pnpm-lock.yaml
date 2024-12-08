@@ -3,6 +3,7 @@ lockfileVersion: 5.4
 specifiers:
   '@auth/prisma-adapter': ^2.7.2
   '@prisma/client': ^5.14.0
+  '@react-spring/web': ^9.7.5
   '@t3-oss/env-nextjs': ^0.10.1
   '@tailwindcss/postcss': 4.0.0-beta.6
   '@tanstack/react-query': ^5.50.0
@@ -37,6 +38,7 @@ specifiers:
 dependencies:
   '@auth/prisma-adapter': 2.7.4_@prisma+client@5.22.0
   '@prisma/client': 5.22.0_prisma@5.22.0
+  '@react-spring/web': 9.7.5_nnrd3gsncyragczmpvfhocinkq
   '@t3-oss/env-nextjs': 0.10.1_44yq2puepboiqkr6xkw3jqqem4
   '@tailwindcss/postcss': 4.0.0-beta.6
   '@tanstack/react-query': 5.62.3_react@18.3.1
@@ -532,6 +534,59 @@ packages:
     resolution: {integrity: sha512-pHhpQdr1UPFpt+zFfnPazhulaZYCUqeIcPpJViYoq9R+D/yw4fjE+CtnsnKzPYm0ddUbeXUzjGVGIRVgPDCk4Q==}
     dependencies:
       '@prisma/debug': 5.22.0
+
+  /@react-spring/animated/9.7.5_react@18.3.1:
+    resolution: {integrity: sha512-Tqrwz7pIlsSDITzxoLS3n/v/YCUHQdOIKtOJf4yL6kYVSDTSmVK1LI1Q3M/uu2Sx4X3pIWF3xLUhlsA6SPNTNg==}
+    peerDependencies:
+      react: ^16.8.0 || ^17.0.0 || ^18.0.0
+    dependencies:
+      '@react-spring/shared': 9.7.5_react@18.3.1
+      '@react-spring/types': 9.7.5
+      react: 18.3.1
+    dev: false
+
+  /@react-spring/core/9.7.5_react@18.3.1:
+    resolution: {integrity: sha512-rmEqcxRcu7dWh7MnCcMXLvrf6/SDlSokLaLTxiPlAYi11nN3B5oiCUAblO72o+9z/87j2uzxa2Inm8UbLjXA+w==}
+    peerDependencies:
+      react: ^16.8.0 || ^17.0.0 || ^18.0.0
+    dependencies:
+      '@react-spring/animated': 9.7.5_react@18.3.1
+      '@react-spring/shared': 9.7.5_react@18.3.1
+      '@react-spring/types': 9.7.5
+      react: 18.3.1
+    dev: false
+
+  /@react-spring/rafz/9.7.5:
+    resolution: {integrity: sha512-5ZenDQMC48wjUzPAm1EtwQ5Ot3bLIAwwqP2w2owG5KoNdNHpEJV263nGhCeKKmuA3vG2zLLOdu3or6kuDjA6Aw==}
+    dev: false
+
+  /@react-spring/shared/9.7.5_react@18.3.1:
+    resolution: {integrity: sha512-wdtoJrhUeeyD/PP/zo+np2s1Z820Ohr/BbuVYv+3dVLW7WctoiN7std8rISoYoHpUXtbkpesSKuPIw/6U1w1Pw==}
+    peerDependencies:
+      react: ^16.8.0 || ^17.0.0 || ^18.0.0
+    dependencies:
+      '@react-spring/rafz': 9.7.5
+      '@react-spring/types': 9.7.5
+      react: 18.3.1
+    dev: false
+
+  /@react-spring/types/9.7.5:
+    resolution: {integrity: sha512-HVj7LrZ4ReHWBimBvu2SKND3cDVUPWKLqRTmWe/fNY6o1owGOX0cAHbdPDTMelgBlVbrTKrre6lFkhqGZErK/g==}
+    dev: false
+
+  /@react-spring/web/9.7.5_nnrd3gsncyragczmpvfhocinkq:
+    resolution: {integrity: sha512-lmvqGwpe+CSttsWNZVr+Dg62adtKhauGwLyGE/RRyZ8AAMLgb9x3NDMA5RMElXo+IMyTkPp7nxTB8ZQlmhb6JQ==}
+    peerDependencies:
+      react: ^16.8.0 || ^17.0.0 || ^18.0.0
+      react-dom: ^16.8.0 || ^17.0.0 || ^18.0.0
+    dependencies:
+      '@react-spring/animated': 9.7.5_react@18.3.1
+      '@react-spring/core': 9.7.5_react@18.3.1
+      '@react-spring/shared': 9.7.5_react@18.3.1
+      '@react-spring/types': 9.7.5
+      react: 18.3.1
+      react-dom: 18.3.1_react@18.3.1
+    dev: false
 
   /@rtsao/scc/1.1.0:
     resolution: {integrity: sha512-zt6OdqaDoOnJ1ZYsCYGt9YmWzDXl4vQdKTyJev62gFhRGKdx7mcT54V9KIjg+d2wi9EXsPvAPKe7i7WjfVWB8g==}

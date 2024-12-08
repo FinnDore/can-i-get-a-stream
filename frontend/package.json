@@ -23,6 +23,7 @@
   "dependencies": {
     "@auth/prisma-adapter": "^2.7.2",
     "@prisma/client": "^5.14.0",
+    "@react-spring/web": "^9.7.5",
     "@t3-oss/env-nextjs": "^0.10.1",
     "@tailwindcss/postcss": "4.0.0-beta.6",
     "@tanstack/react-query": "^5.50.0",

@@ -1,9 +1,10 @@
 "use client";
+import { animated, config, useSpring } from "@react-spring/web";
 import { clsx } from "clsx";
 import Hls from "hls.js";
 import { Jersey_20 } from "next/font/google";
 import Link from "next/link";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { GearIcon } from "./icons/gear";
 import { ViewAllIcon } from "./icons/view-all";
 
@@ -43,12 +44,11 @@ export function Nav() {
         </Link>
       </div>
 
-      <div className="mt-auto flex w-full items-center justify-center">
+      <Pip className="mt-auto flex w-full items-center justify-center">
         <VideoPlayer />
-      </div>
-      <div>
-        <Profile />
-      </div>
+      </Pip>
+      <div></div>
+      <Profile />
     </nav>
   );
 }
@@ -63,16 +63,17 @@ function VideoPlayer() {
     hls.loadSource("http://localhost:3001/stream/cam");
     hls.attachMedia(videoRef.current);
     hls.on(Hls.Events.MANIFEST_PARSED, () => {});
+    hls.on(Hls.Events.MEDIA_ATTACHED, () => {
+      // setTimeout(() => void videoRef.current?.play(), 1000);
+    });
   }, []);
 
   return (
     <video
+      autoPlay
       ref={videoRef}
-      className="mx-auto aspect-auto w-full rounded-md border border-black/30"
+      className="mx-auto aspect-auto w-full max-w-[300px] rounded-md border border-black/30"
       controls={false}
-      onClick={(e) => {
-        e.target.paused ? e.target.play() : e.target.pause();
-      }}
     />
   );
 }
@@ -134,3 +135,88 @@ export const Pfp = forwardRef<
     </div>
   );
 });
+
+function Pip(props: { className?: string; children: React.ReactNode }) {
+  const [detatched, setDetatched] = useState(false);
+  const [mouseDown, setMouseDown] = useState(false);
+  const [xy, setXY] = useState<{ x: number; y: number } | null>(null);
+  const [offset, setOffset] = useState<{ x: number; y: number } | null>(null);
+  const pipRef = useRef<HTMLDivElement>(null);
+  const spring = useSpring({
+    scale: mouseDown ? 1.1 : 1,
+    config: config.stiff,
+  });
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const onUnfocus = () => setMouseDown(false);
+    window.addEventListener("blur", onUnfocus);
+
+    return () => {
+      window.removeEventListener("blur", onUnfocus);
+    };
+  }, []);
+  useEffect(() => {
+    if (!mouseDown) return;
+
+    const onMouseMove = (e: MouseEvent) => {
+      if (!pipRef.current || !window) return;
+
+      // const boundingRect = pipRef.current.getBoundingClientRect();
+      const x = Math.max(e.clientX - (offset?.x ?? 0), 0);
+      const y = Math.max(e.clientY - (offset?.y ?? 0), 0);
+      setXY({ x, y });
+    };
+
+    window.addEventListener("mousemove", onMouseMove);
+
+    return () => {
+      window.removeEventListener("mousemove", onMouseMove);
+    };
+  }, [mouseDown]);
+
+  return (
+    <div className={clsx("relative", props.className)}>
+      <div
+        style={{
+          position: detatched && xy ? "fixed" : "relative",
+          left: detatched && xy ? xy.x : 0,
+          top: detatched && xy ? xy.y : 0,
+        }}
+        ref={pipRef}
+        onMouseDown={(e) => {
+          setMouseDown(true);
+          setDetatched(true);
+          const boundingRect = pipRef.current?.getBoundingClientRect();
+          if (!boundingRect) return;
+          setOffset({
+            x: e.clientX - boundingRect.left,
+            y: e.clientY - boundingRect.top,
+          });
+        }}
+        onMouseUp={(e) => {
+          setMouseDown(false);
+        }}
+        onClick={(e) => {
+          if (e.metaKey || e.ctrlKey) {
+            setDetatched(false);
+            setOffset(null);
+            setXY(null);
+          }
+        }}
+      >
+        <animated.div style={spring}>{props.children}</animated.div>
+      </div>
+      {detatched && xy && (
+        <div
+          className="aspect-auto h-[120px] w-full rounded-md border border-dashed border-black/20 bg-black/5"
+          onClick={(e) => {
+            e.stopPropagation();
+            setDetatched(false);
+          }}
+        />
+      )}
+    </div>
+  );
+}
