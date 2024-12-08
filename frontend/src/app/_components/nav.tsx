@@ -194,6 +194,12 @@ function Pip(props: { className?: string; children: React.ReactNode }) {
     };
   }, [mouseDown]);
 
+  function reAttach() {
+    setDetatched(false);
+    setOffset(null);
+    setXY(null);
+  }
+
   return (
     <div className={clsx("relative", props.className, {})}>
       <div
@@ -216,10 +222,7 @@ function Pip(props: { className?: string; children: React.ReactNode }) {
         }}
         onClick={(e) => {
           if (e.metaKey || e.ctrlKey) {
-            setDetachedSize(300);
-            setDetatched(false);
-            setOffset(null);
-            setXY(null);
+            reAttach();
           }
         }}
       >
@@ -227,7 +230,7 @@ function Pip(props: { className?: string; children: React.ReactNode }) {
           {props.children}
         </animated.div>
         <div
-          className="absolute right-0 bottom-0 h-4 w-4 cursor-se-resize"
+          className="absolute right-0 bottom-0 h-4 w-4 cursor-nwse-resize"
           onMouseDown={(e) => {
             e.preventDefault();
             e.stopPropagation();
@@ -240,7 +243,7 @@ function Pip(props: { className?: string; children: React.ReactNode }) {
           className="grid aspect-auto h-[120px] w-full place-items-center rounded-md border border-dashed border-black/20 bg-black/5 text-xs font-bold text-gray-400"
           onClick={(e) => {
             e.stopPropagation();
-            setDetatched(false);
+            reAttach();
           }}
         >
           video detached
