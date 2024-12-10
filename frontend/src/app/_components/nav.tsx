@@ -4,7 +4,7 @@ import { clsx } from "clsx";
 import Hls from "hls.js";
 import { Jersey_20 } from "next/font/google";
 import Link from "next/link";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { GearIcon } from "./icons/gear";
 import { ViewAllIcon } from "./icons/view-all";
 
@@ -154,15 +154,34 @@ function Pip(props: { className?: string; children: React.ReactNode }) {
   const [xy, setXY] = useState<{ x: number; y: number } | null>(null);
   const [offset, setOffset] = useState<{ x: number; y: number } | null>(null);
   const pipRef = useRef<HTMLDivElement>(null);
-  const spring = useSpring({
-    scale: mouseDown === "DRAG" ? 1.1 : 1,
-    config: detatched ? config.stiff : config.wobbly,
-  });
+
+  const [spring, api] = useSpring(
+    () => ({
+      scale: mouseDown === "DRAG" ? 1.1 : 1,
+      config: detatched ? config.stiff : config.wobbly,
+    }),
+    [mouseDown, detatched],
+  );
+
+  const animateBig = useMemo(
+    () =>
+      (biggness = 1.1) => {
+        void api.start({ scale: biggness, config: config.wobbly });
+      },
+    [api],
+  );
+
+  const animateSmall = useMemo(
+    () => () => {
+      void api.start({ scale: 1, config: config.wobbly });
+    },
+    [api],
+  );
 
   useEffect(() => {
     if (typeof window === "undefined") return;
 
-    const onUnfocus = () => setMouseDown(false);
+    const onUnfocus = () => setMouseDown(null);
     window.addEventListener("mouseup", onUnfocus);
 
     return () => {
@@ -190,6 +209,7 @@ function Pip(props: { className?: string; children: React.ReactNode }) {
     window.addEventListener("mousemove", onMouseMove);
 
     return () => {
+      animateSmall();
       window.removeEventListener("mousemove", onMouseMove);
     };
   }, [mouseDown]);
@@ -197,7 +217,11 @@ function Pip(props: { className?: string; children: React.ReactNode }) {
   function reAttach() {
     setDetatched(false);
     setOffset(null);
+    setDetachedSize(300);
+    setMouseDown(null);
     setXY(null);
+    animateBig(1.05);
+    setTimeout(animateSmall, 100);
   }
 
   return (
@@ -212,6 +236,7 @@ function Pip(props: { className?: string; children: React.ReactNode }) {
         ref={pipRef}
         onMouseDown={(e) => {
           setMouseDown("DRAG");
+          animateBig();
           setDetatched(true);
           const boundingRect = pipRef.current?.getBoundingClientRect();
           if (!boundingRect) return;
