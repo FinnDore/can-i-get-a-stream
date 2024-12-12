@@ -45,7 +45,9 @@ export function Nav() {
       </div>
 
       <Pip className="mt-auto flex w-full items-center justify-center">
-        <VideoPlayer />
+        {(detached, reatach) => (
+          <VideoPlayer reatach={reatach} detached={detached} />
+        )}
       </Pip>
       <div></div>
       <Profile />
@@ -53,7 +55,7 @@ export function Nav() {
   );
 }
 
-function VideoPlayer() {
+function VideoPlayer(props: { reatach: () => void; detached: boolean }) {
   const videoRef = useRef<HTMLVideoElement>(null);
 
   useEffect(() => {
@@ -74,12 +76,32 @@ function VideoPlayer() {
   }, []);
 
   return (
-    <video
-      autoPlay
-      ref={videoRef}
-      className="mx-auto aspect-auto w-full rounded-md border border-black/30"
-      controls={false}
-    />
+    <div className="group relative mx-auto w-full rounded-md border border-black/30">
+      <video
+        autoPlay
+        ref={videoRef}
+        className="aspect-auto w-full"
+        controls={false}
+      />
+      {props.detached && (
+        <div className="pointer-events-none absolute top-0 w-full opacity-0 transition-opacity group-hover:opacity-100">
+          <button
+            onMouseDown={(e) => {
+              e.stopPropagation();
+              e.preventDefault();
+            }}
+            className="pointer-events-auto absolute top-0 right-0 cursor-pointer"
+            onClick={(e) => {
+              e.stopPropagation();
+              e.preventDefault();
+              props.reatach();
+            }}
+          >
+            <XmarkSmIcon fill="white" height="1.5em" width="1.5em" />
+          </button>
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -96,6 +118,7 @@ function Profile() {
 }
 
 import { forwardRef, type HTMLProps } from "react";
+import { XmarkSmIcon } from "./icons/xmark-sm";
 
 export const Pfp = forwardRef<
   HTMLDivElement,
@@ -147,7 +170,15 @@ const MouseDownType = {
 } as const;
 
 type MouseDownType = (typeof MouseDownType)[keyof typeof MouseDownType];
-function Pip(props: { className?: string; children: React.ReactNode }) {
+function Pip(props: {
+  className?: string;
+  children: (
+    isAttached: boolean,
+    reatach: () => void,
+  ) => React.ReactElement<{
+    reatach: () => void;
+  }>;
+}) {
   const [detachedSize, setDetachedSize] = useState(300);
   const [detatched, setDetatched] = useState(false);
   const [mouseDown, setMouseDown] = useState<MouseDownType | null>(null);
@@ -252,7 +283,7 @@ function Pip(props: { className?: string; children: React.ReactNode }) {
         }}
       >
         <animated.div style={spring} className="aspect-auto w-full">
-          {props.children}
+          {props.children(detatched, reAttach)}
         </animated.div>
         <div
           className="absolute right-0 bottom-0 h-4 w-4 cursor-nwse-resize"
@@ -264,7 +295,7 @@ function Pip(props: { className?: string; children: React.ReactNode }) {
         ></div>
       </div>
       {detatched && xy && (
-        <div
+        <button
           className="grid aspect-auto h-[120px] w-full place-items-center rounded-md border border-dashed border-black/20 bg-black/5 text-xs font-bold text-gray-400"
           onClick={(e) => {
             e.stopPropagation();
@@ -272,7 +303,7 @@ function Pip(props: { className?: string; children: React.ReactNode }) {
           }}
         >
           video detached
-        </div>
+        </button>
       )}
     </div>
   );
