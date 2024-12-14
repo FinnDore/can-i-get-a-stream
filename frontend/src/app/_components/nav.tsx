@@ -10,297 +10,302 @@ import { ViewAllIcon } from "./icons/view-all";
 
 // If loading a variable font, you don't need to specify the font weight
 const jersey_20 = Jersey_20({
-  weight: "400",
-  subsets: ["latin"],
-  display: "swap",
+    weight: "400",
+    subsets: ["latin"],
+    display: "swap",
 });
 
 export function Nav() {
-  return (
-    <nav className="flex h-full w-[225px] min-w-[225px] flex-col p-2.5 pe-0">
-      <h1
-        className={clsx(
-          "flexl mb-3 justify-center gap-2 text-3xl font-bold",
-          jersey_20.className,
-        )}
-      >
-        {/* <SharkWaterIcon /> */}
-        <span className="my-auto leading-0">Stream</span>
-      </h1>
-      <div className="flex flex-col gap-2 font-medium text-gray-700">
-        <Link
-          href={"/all"}
-          className="flex cursor-pointer gap-2 hover:text-black"
-        >
-          <ViewAllIcon />
-          <span className="my-auto leading-0">All Streams</span>
-        </Link>
-        <Link
-          href={"/settings"}
-          className="flex cursor-pointer gap-2 hover:text-black"
-        >
-          <GearIcon />
-          <span className="my-auto leading-0">Settings</span>
-        </Link>
-      </div>
+    return (
+        <nav className="flex h-full w-[225px] min-w-[225px] flex-col p-2.5 pe-0">
+            <h1
+                className={clsx(
+                    "flexl mb-3 justify-center gap-2 text-3xl font-bold",
+                    jersey_20.className,
+                )}
+            >
+                {/* <SharkWaterIcon /> */}
+                <span className="my-auto leading-0">Stream</span>
+            </h1>
+            <div className="flex flex-col gap-2 font-medium text-gray-700">
+                <Link
+                    href={"/all"}
+                    className="flex cursor-pointer gap-2 hover:text-black"
+                >
+                    <ViewAllIcon />
+                    <span className="my-auto leading-0">All Streams</span>
+                </Link>
+                <Link
+                    href={"/settings"}
+                    className="flex cursor-pointer gap-2 hover:text-black"
+                >
+                    <GearIcon />
+                    <span className="my-auto leading-0">Settings</span>
+                </Link>
+            </div>
 
-      <Pip className="mt-auto flex w-full items-center justify-center">
-        {(detached, reatach) => (
-          <VideoPlayer reatach={reatach} detached={detached} />
-        )}
-      </Pip>
-      <div></div>
-      <Profile />
-    </nav>
-  );
+            <Pip className="mt-auto flex w-full items-center justify-center">
+                {(detached, reatach) => (
+                    <VideoPlayer reatach={reatach} detached={detached} />
+                )}
+            </Pip>
+            <div></div>
+            <Profile />
+        </nav>
+    );
 }
 
 function VideoPlayer(props: { reatach: () => void; detached: boolean }) {
-  const videoRef = useRef<HTMLVideoElement>(null);
+    const videoRef = useRef<HTMLVideoElement>(null);
 
-  useEffect(() => {
-    if (!videoRef.current) return;
+    useEffect(() => {
+        if (!videoRef.current) return;
 
-    const hls = new Hls();
-    hls.loadSource("http://localhost:3001/stream/cam");
-    hls.attachMedia(videoRef.current);
-    window.addEventListener("keyup", (e) => {
-      if (e.key === " ") {
-        void videoRef.current?.play();
-      }
-    });
-  }, []);
+        const hls = new Hls();
+        hls.loadSource("http://localhost:3001/stream/cam");
+        hls.attachMedia(videoRef.current);
+        window.addEventListener("keyup", (e) => {
+            if (e.key === " ") {
+                void videoRef.current?.play();
+            }
+        });
+    }, []);
 
-  return (
-    <div className="group relative mx-auto w-full rounded-md border border-black/30">
-      <video
-        autoPlay
-        ref={videoRef}
-        className="aspect-auto w-full"
-        controls={false}
-      />
-      {props.detached && (
-        <div className="pointer-events-none absolute top-0 w-full opacity-0 transition-opacity group-hover:opacity-100">
-          <button
-            onMouseDown={(e) => {
-              e.stopPropagation();
-              e.preventDefault();
-            }}
-            className="pointer-events-auto absolute top-0 right-0 cursor-pointer"
-            onClick={(e) => {
-              e.stopPropagation();
-              e.preventDefault();
-              props.reatach();
-            }}
-          >
-            <XmarkSmIcon fill="white" height="1.5em" width="1.5em" />
-          </button>
+    return (
+        <div className="group relative mx-auto w-full rounded-md border border-black/30">
+            <video
+                autoPlay
+                ref={videoRef}
+                className="aspect-auto w-full"
+                controls={false}
+            />
+            {props.detached && (
+                <div className="pointer-events-none absolute top-0 w-full opacity-0 transition-opacity group-hover:opacity-100">
+                    <button
+                        onMouseDown={(e) => {
+                            e.stopPropagation();
+                            e.preventDefault();
+                        }}
+                        className="pointer-events-auto absolute top-0 right-0 cursor-pointer"
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            e.preventDefault();
+                            props.reatach();
+                        }}
+                    >
+                        <XmarkSmIcon
+                            fill="white"
+                            height="1.5em"
+                            width="1.5em"
+                        />
+                    </button>
+                </div>
+            )}
         </div>
-      )}
-    </div>
-  );
+    );
 }
 
 function Profile() {
-  return (
-    <div className="mt-4 flex w-full gap-2">
-      <Pfp name="Finn" image="/finn.gif" className="h-9 w-9" />
-      <div className="my-auto leading-none">
-        <div className="font-bold">Finn</div>
-        <div className="text-xs">finn@gmail.com</div>
-      </div>
-    </div>
-  );
+    return (
+        <div className="mt-4 flex w-full gap-2">
+            <Pfp name="Finn" image="/finn.gif" className="h-9 w-9" />
+            <div className="my-auto leading-none">
+                <div className="font-bold">Finn</div>
+                <div className="text-xs">finn@gmail.com</div>
+            </div>
+        </div>
+    );
 }
 
 import { forwardRef, type HTMLProps } from "react";
 import { XmarkSmIcon } from "./icons/xmark-sm";
 
 export const Pfp = forwardRef<
-  HTMLDivElement,
-  HTMLProps<HTMLDivElement> & {
-    name?: string | null | undefined;
-    border?: string;
-    image: string;
-  }
+    HTMLDivElement,
+    HTMLProps<HTMLDivElement> & {
+        name?: string | null | undefined;
+        border?: string;
+        image: string;
+    }
 >(function Pfp({ name, border, image, ...props }, ref) {
-  return (
-    <div
-      ref={ref}
-      {...props}
-      className={clsx("aspect-square", props.className)}
-    >
-      <div className="relative h-full w-full cursor-pointer">
+    return (
         <div
-          className={clsx(
-            border,
-            "absolute z-10 h-full w-full overflow-clip rounded-full border border-black/20",
-          )}
+            ref={ref}
+            {...props}
+            className={clsx("aspect-square", props.className)}
         >
-          <picture className="block h-[70px] min-h-full w-[70px] min-w-full overflow-clip">
-            <source srcSet={"/NOISE.webp"} type="image/webp" />
-            <img
-              alt={`profile picture for ${name ?? "a user"}`}
-              className="aspect-square min-h-full"
-            />
-          </picture>
-        </div>
+            <div className="relative h-full w-full cursor-pointer">
+                <div
+                    className={clsx(
+                        border,
+                        "absolute z-10 h-full w-full overflow-clip rounded-full border border-black/20",
+                    )}
+                >
+                    <picture className="block h-[70px] min-h-full w-[70px] min-w-full overflow-clip">
+                        <source srcSet={"/NOISE.webp"} type="image/webp" />
+                        <img
+                            alt={`profile picture for ${name ?? "a user"}`}
+                            className="aspect-square min-h-full"
+                        />
+                    </picture>
+                </div>
 
-        <div className="absolute block h-full w-full overflow-clip rounded-full saturate-150">
-          <picture className="">
-            <source suppressHydrationWarning srcSet={image} />
-            <img
-              className="h-full w-full"
-              alt={`profile picture for ${name ?? "a user"}`}
-            />
-          </picture>
+                <div className="absolute block h-full w-full overflow-clip rounded-full saturate-150">
+                    <picture className="">
+                        <source suppressHydrationWarning srcSet={image} />
+                        <img
+                            className="h-full w-full"
+                            alt={`profile picture for ${name ?? "a user"}`}
+                        />
+                    </picture>
+                </div>
+            </div>
         </div>
-      </div>
-    </div>
-  );
+    );
 });
 
 const MouseDownType = {
-  RESIZE: "RESIZE",
-  DRAG: "DRAG",
+    RESIZE: "RESIZE",
+    DRAG: "DRAG",
 } as const;
 
 type MouseDownType = (typeof MouseDownType)[keyof typeof MouseDownType];
 function Pip(props: {
-  className?: string;
-  children: (
-    isAttached: boolean,
-    reatach: () => void,
-  ) => React.ReactElement<{
-    reatach: () => void;
-  }>;
+    className?: string;
+    children: (
+        isAttached: boolean,
+        reatach: () => void,
+    ) => React.ReactElement<{
+        reatach: () => void;
+    }>;
 }) {
-  const [detachedSize, setDetachedSize] = useState(300);
-  const [detatched, setDetatched] = useState(false);
-  const [mouseDown, setMouseDown] = useState<MouseDownType | null>(null);
-  const [xy, setXY] = useState<{ x: number; y: number } | null>(null);
-  const [offset, setOffset] = useState<{ x: number; y: number } | null>(null);
-  const pipRef = useRef<HTMLDivElement>(null);
+    const [detachedSize, setDetachedSize] = useState(300);
+    const [detatched, setDetatched] = useState(false);
+    const [mouseDown, setMouseDown] = useState<MouseDownType | null>(null);
+    const [xy, setXY] = useState<{ x: number; y: number } | null>(null);
+    const [offset, setOffset] = useState<{ x: number; y: number } | null>(null);
+    const pipRef = useRef<HTMLDivElement>(null);
 
-  const [spring, api] = useSpring(
-    () => ({
-      scale: mouseDown === "DRAG" ? 1.1 : 1,
-      config: detatched ? config.stiff : config.wobbly,
-    }),
-    [mouseDown, detatched],
-  );
+    const [spring, api] = useSpring(
+        () => ({
+            scale: mouseDown === "DRAG" ? 1.1 : 1,
+            config: detatched ? config.stiff : config.wobbly,
+        }),
+        [mouseDown, detatched],
+    );
 
-  const animateBig = useMemo(
-    () =>
-      (biggness = 1.1) => {
-        void api.start({ scale: biggness, config: config.wobbly });
-      },
-    [api],
-  );
+    const animateBig = useMemo(
+        () =>
+            (biggness = 1.1) => {
+                void api.start({ scale: biggness, config: config.wobbly });
+            },
+        [api],
+    );
 
-  const animateSmall = useMemo(
-    () => () => {
-      void api.start({ scale: 1, config: config.wobbly });
-    },
-    [api],
-  );
+    const animateSmall = useMemo(
+        () => () => {
+            void api.start({ scale: 1, config: config.wobbly });
+        },
+        [api],
+    );
 
-  useEffect(() => {
-    if (typeof window === "undefined") return;
+    useEffect(() => {
+        if (typeof window === "undefined") return;
 
-    const onUnfocus = () => setMouseDown(null);
-    window.addEventListener("mouseup", onUnfocus);
+        const onUnfocus = () => setMouseDown(null);
+        window.addEventListener("mouseup", onUnfocus);
 
-    return () => {
-      window.removeEventListener("mouseup", onUnfocus);
-    };
-  }, []);
+        return () => {
+            window.removeEventListener("mouseup", onUnfocus);
+        };
+    }, []);
 
-  useEffect(() => {
-    if (!mouseDown) return;
+    useEffect(() => {
+        if (!mouseDown) return;
 
-    const onMouseMove = (e: MouseEvent) => {
-      if (!pipRef.current || !window) return;
+        const onMouseMove = (e: MouseEvent) => {
+            if (!pipRef.current || !window) return;
 
-      if (mouseDown === "RESIZE") {
-        const boundingRect = pipRef.current.getBoundingClientRect();
-        setDetachedSize(Math.max(e.clientX - boundingRect.left, 150));
-        return;
-      } else if (mouseDown === "DRAG") {
-        const x = Math.max(e.clientX - (offset?.x ?? 0), 0);
-        const y = Math.max(e.clientY - (offset?.y ?? 0), 0);
-        setXY({ x, y });
-      }
-    };
+            if (mouseDown === "RESIZE") {
+                const boundingRect = pipRef.current.getBoundingClientRect();
+                setDetachedSize(Math.max(e.clientX - boundingRect.left, 150));
+                return;
+            } else if (mouseDown === "DRAG") {
+                const x = Math.max(e.clientX - (offset?.x ?? 0), 0);
+                const y = Math.max(e.clientY - (offset?.y ?? 0), 0);
+                setXY({ x, y });
+            }
+        };
 
-    window.addEventListener("mousemove", onMouseMove);
+        window.addEventListener("mousemove", onMouseMove);
 
-    return () => {
-      animateSmall();
-      window.removeEventListener("mousemove", onMouseMove);
-    };
-  }, [mouseDown]);
+        return () => {
+            animateSmall();
+            window.removeEventListener("mousemove", onMouseMove);
+        };
+    }, [mouseDown]);
 
-  function reAttach() {
-    setDetatched(false);
-    setOffset(null);
-    setDetachedSize(300);
-    setMouseDown(null);
-    setXY(null);
-    animateBig(1.05);
-    setTimeout(animateSmall, 100);
-  }
+    function reAttach() {
+        setDetatched(false);
+        setOffset(null);
+        setDetachedSize(300);
+        setMouseDown(null);
+        setXY(null);
+        animateBig(1.05);
+        setTimeout(animateSmall, 100);
+    }
 
-  return (
-    <div className={clsx("relative", props.className, {})}>
-      <div
-        style={{
-          position: detatched && xy ? "fixed" : "relative",
-          left: detatched && xy ? xy.x : 0,
-          top: detatched && xy ? xy.y : 0,
-          width: detatched ? `${detachedSize}px` : undefined,
-        }}
-        ref={pipRef}
-        onMouseDown={(e) => {
-          setMouseDown("DRAG");
-          animateBig();
-          setDetatched(true);
-          const boundingRect = pipRef.current?.getBoundingClientRect();
-          if (!boundingRect) return;
-          setOffset({
-            x: e.clientX - boundingRect.left,
-            y: e.clientY - boundingRect.top,
-          });
-        }}
-        onClick={(e) => {
-          if (e.metaKey || e.ctrlKey) {
-            reAttach();
-          }
-        }}
-      >
-        <animated.div style={spring} className="aspect-auto w-full">
-          {props.children(detatched, reAttach)}
-        </animated.div>
-        <div
-          className="absolute right-0 bottom-0 h-4 w-4 cursor-nwse-resize"
-          onMouseDown={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            setMouseDown("RESIZE");
-          }}
-        ></div>
-      </div>
-      {detatched && xy && (
-        <button
-          className="grid aspect-auto h-[120px] w-full place-items-center rounded-md border border-dashed border-black/20 bg-black/5 text-xs font-bold text-gray-400"
-          onClick={(e) => {
-            e.stopPropagation();
-            reAttach();
-          }}
-        >
-          video detached
-        </button>
-      )}
-    </div>
-  );
+    return (
+        <div className={clsx("relative", props.className, {})}>
+            <div
+                style={{
+                    position: detatched && xy ? "fixed" : "relative",
+                    left: detatched && xy ? xy.x : 0,
+                    top: detatched && xy ? xy.y : 0,
+                    width: detatched ? `${detachedSize}px` : undefined,
+                }}
+                ref={pipRef}
+                onMouseDown={(e) => {
+                    setMouseDown("DRAG");
+                    animateBig();
+                    setDetatched(true);
+                    const boundingRect =
+                        pipRef.current?.getBoundingClientRect();
+                    if (!boundingRect) return;
+                    setOffset({
+                        x: e.clientX - boundingRect.left,
+                        y: e.clientY - boundingRect.top,
+                    });
+                }}
+                onClick={(e) => {
+                    if (e.metaKey || e.ctrlKey) {
+                        reAttach();
+                    }
+                }}
+            >
+                <animated.div style={spring} className="aspect-auto w-full">
+                    {props.children(detatched, reAttach)}
+                </animated.div>
+                <div
+                    className="absolute right-0 bottom-0 h-4 w-4 cursor-nwse-resize"
+                    onMouseDown={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        setMouseDown("RESIZE");
+                    }}
+                ></div>
+            </div>
+            {detatched && xy && (
+                <button
+                    className="grid aspect-auto h-[120px] w-full place-items-center rounded-md border border-dashed border-black/20 bg-black/5 text-xs font-bold text-gray-400"
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        reAttach();
+                    }}
+                >
+                    video detached
+                </button>
+            )}
+        </div>
+    );
 }

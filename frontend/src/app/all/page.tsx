@@ -1,5 +1,5 @@
 "use client";
 
 export default function Home() {
-  return <div>all</div>;
+    return <div>all</div>;
 }
