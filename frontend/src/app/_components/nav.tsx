@@ -64,10 +64,6 @@ function VideoPlayer(props: { reatach: () => void; detached: boolean }) {
     const hls = new Hls();
     hls.loadSource("http://localhost:3001/stream/cam");
     hls.attachMedia(videoRef.current);
-    hls.on(Hls.Events.MANIFEST_PARSED, () => {});
-    hls.on(Hls.Events.MEDIA_ATTACHED, () => {
-      // setTimeout(() => void videoRef.current?.play(), 1000);
-    });
     window.addEventListener("keyup", (e) => {
       if (e.key === " ") {
         void videoRef.current?.play();

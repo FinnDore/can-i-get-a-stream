@@ -2,13 +2,11 @@ export function ViewAllIcon(props: {
   title?: string;
   fill?: string;
   secondaryfill?: string;
-  strokewidth?: string;
   width?: string;
   height?: string;
 }) {
   const fill = props.fill ?? "currentColor";
   const secondaryfill = props.secondaryfill ?? fill;
-  const strokewidth = props.strokewidth ?? 1;
   const width = props.width ?? "1em";
   const height = props.height ?? "1em";
   const title = props.title ?? "view all";
