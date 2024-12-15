@@ -72,11 +72,11 @@ function VideoPlayer(props: { reatach: () => void; detached: boolean }) {
     }, []);
 
     return (
-        <div className="group relative mx-auto w-full rounded-md border border-black/30">
+        <div className="group relative mx-auto overflow-hidden rounded-md border border-black/30">
             <video
                 autoPlay
                 ref={videoRef}
-                className="aspect-auto w-full"
+                className="aspect-auto h-full w-full"
                 controls={false}
             />
             {props.detached && (
@@ -168,6 +168,7 @@ const MouseDownType = {
     RESIZE: "RESIZE",
     DRAG: "DRAG",
 } as const;
+const defaultDetachedSize = 298;
 
 type MouseDownType = (typeof MouseDownType)[keyof typeof MouseDownType];
 function Pip(props: {
@@ -179,7 +180,7 @@ function Pip(props: {
         reatach: () => void;
     }>;
 }) {
-    const [detachedSize, setDetachedSize] = useState(300);
+    const [detachedSize, setDetachedSize] = useState(defaultDetachedSize);
     const [detatched, setDetatched] = useState(false);
     const [mouseDown, setMouseDown] = useState<MouseDownType | null>(null);
     const [xy, setXY] = useState<{ x: number; y: number } | null>(null);
@@ -248,7 +249,7 @@ function Pip(props: {
     function reAttach() {
         setDetatched(false);
         setOffset(null);
-        setDetachedSize(300);
+        setDetachedSize(defaultDetachedSize);
         setMouseDown(null);
         setXY(null);
         animateBig(1.05);
@@ -256,7 +257,7 @@ function Pip(props: {
     }
 
     return (
-        <div className={clsx("relative", props.className, {})}>
+        <div className={clsx("relative z-[10000000]", props.className, {})}>
             <div
                 style={{
                     position: detatched && xy ? "fixed" : "relative",

@@ -107,7 +107,7 @@ export default function Home() {
             </div>
             <div className="relative">
                 <Arc
-                    hidden={!spaceDown}
+                    hidden={!spaceDown || !position}
                     className="pointer-events-none fixed w-72"
                     style={{ top: position?.y, left: position?.x }}
                 >
