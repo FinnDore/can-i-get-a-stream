@@ -44,9 +44,15 @@ async fn stream(Path(stream_id): Path<String>) -> impl IntoResponse {
     let path = format!("resources/{}/index.m3u8a", stream_id);
     match tokio::fs::read_to_string(PathBuf::from(&path)).await {
         Ok(file) => Ok(file),
-        Err(err) => {
-            error!(?err, path, "Failed to open m3u8 file {}", err);
-            return Err((StatusCode::NOT_FOUND, format!("File not found: {}", err)));
+        Err(_) => {
+            let path = format!("resources/{}/index.m3u8", stream_id);
+            return match tokio::fs::read_to_string(PathBuf::from(&path)).await {
+                Ok(file) => Ok(file),
+                Err(err) => {
+                    error!(?err, path, "Failed to open m3u8 file {}", err);
+                    Err((StatusCode::NOT_FOUND, format!("File not found: {}", err)))
+                }
+            };
         }
     }
 }

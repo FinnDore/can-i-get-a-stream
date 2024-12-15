@@ -1,7 +1,10 @@
 "use client";
 
 import clsx from "clsx";
+import Hls from "hls.js";
 import { Jersey_20 } from "next/font/google";
+import { useEffect, useRef, useState } from "react";
+import { Arc } from "../_components/arc";
 import { Checkbox } from "../_components/checkbox";
 
 const jersey_20 = Jersey_20({
@@ -31,18 +34,67 @@ const streams = [
     {
         name: "Stream One",
         description: "one",
-        id: "1",
+        id: "bbb",
         uptime: "3.5 hours",
     },
     {
         name: "Stream Two",
         description: "two",
-        id: "2",
+        id: "f",
         uptime: "6 minutes",
     },
 ];
 
 export default function Home() {
+    const [position, setPosition] = useState<{ x: number; y: number } | null>(
+        null,
+    );
+    const [spaceDown, setSpaceDown] = useState(false);
+    const [hoveredRow, setHoveredRow] = useState<string | null>(null);
+    const tBodyRef = useRef<HTMLTableSectionElement>(null);
+    useEffect(() => {
+        const onKeyDown = (e: KeyboardEvent) => {
+            if (e.key === " ") {
+                document.body.classList.add("cursor-none");
+                setSpaceDown(true);
+            }
+        };
+        const onKeyUp = (e: KeyboardEvent) => {
+            if (e.key === " ") {
+                document.body.classList.remove("cursor-none");
+                setSpaceDown(false);
+                setPosition(null);
+            }
+        };
+        window.addEventListener("keydown", onKeyDown);
+        window.addEventListener("keyup", onKeyUp);
+
+        return () => {
+            window.removeEventListener("keydown", onKeyDown);
+            window.removeEventListener("keyup", onKeyUp);
+        };
+    }, []);
+
+    useEffect(() => {
+        if (!tBodyRef.current || !spaceDown) return;
+
+        const onMouseMove = (e: MouseEvent) => {
+            if (!tBodyRef.current) return;
+            const boundingRect = tBodyRef.current.getBoundingClientRect();
+            setPosition({
+                x: e.clientX - boundingRect.left / 2,
+                y: e.clientY - boundingRect.top / 1.5,
+            });
+        };
+
+        window.addEventListener("mousemove", onMouseMove);
+
+        return () => {
+            window.removeEventListener("mousemove", onMouseMove);
+        };
+    }, [spaceDown]);
+    console.log(hoveredRow);
+
     return (
         <div className="h-full w-full p-4 px-6">
             <div className="mb-4 flex w-full justify-between">
@@ -53,33 +105,80 @@ export default function Home() {
                     Add Stream
                 </button>
             </div>
-            <table className="w-full">
-                <thead className="text-left text-sm text-gray-700">
-                    <tr>
-                        <th className="pb-2 font-normal">
-                            <Checkbox />
-                        </th>
-                        <th className="pb-2 font-normal">Name</th>
-                        <th className="pb-2 font-normal">Description</th>
-                        <th className="pb-2 font-normal">Uptime</th>
-                    </tr>
-                </thead>
-                <tbody className="border-spacing-4">
-                    {streams.map((stream) => (
-                        <tr
-                            key={stream.id}
-                            className="border-t border-black/10 last:border-b"
-                        >
-                            <td className="py-3 pe-1">
+            <div className="relative">
+                <Arc
+                    hidden={!spaceDown}
+                    className="pointer-events-none fixed w-72"
+                    style={{ top: position?.y, left: position?.x }}
+                >
+                    <VideoPlayer streamId={hoveredRow ?? "cam"} />
+                </Arc>
+                <table className="w-full">
+                    <thead className="text-left text-sm text-gray-700">
+                        <tr>
+                            <th className="pb-2 font-normal">
                                 <Checkbox />
-                            </td>
-                            <td className="py-3 pe-1">{stream.name}</td>
-                            <td className="py-3 pe-1">{stream.description}</td>
-                            <td className="py-3 pe-1">{stream.uptime}</td>
+                            </th>
+                            <th className="pb-2 font-normal">Name</th>
+                            <th className="pb-2 font-normal">Description</th>
+                            <th className="pb-2 font-normal">Uptime</th>
                         </tr>
-                    ))}
-                </tbody>
-            </table>
+                    </thead>
+                    <tbody className="border-spacing-4" ref={tBodyRef}>
+                        {streams.map((stream, i) => (
+                            <tr
+                                key={stream.id}
+                                className="border-t border-black/10 last:border-b hover:bg-gray-50"
+                                onMouseEnter={() => setHoveredRow(stream.id)}
+                                onMouseLeave={() => setHoveredRow(null)}
+                                data-stream-id={stream.id}
+                            >
+                                <td className="py-3 pe-1">
+                                    <Checkbox />
+                                </td>
+                                <td className="max-w-34 py-3 pe-1">
+                                    {stream.name}
+                                </td>
+                                <td className="py-3 pe-1">
+                                    {stream.description}
+                                </td>
+                                <td className="py-3 pe-1">{stream.uptime}</td>
+                            </tr>
+                        ))}
+                    </tbody>
+                </table>
+            </div>
         </div>
+    );
+}
+
+function VideoPlayer(prop: { streamId: string }) {
+    const videoRef = useRef<HTMLVideoElement>(null);
+
+    useEffect(() => {
+        if (!videoRef.current) return;
+
+        const hls = new Hls();
+
+        hls.loadSource(`http://localhost:3001/stream/${prop.streamId}`);
+        hls.attachMedia(videoRef.current);
+        window.addEventListener("keyup", (e) => {
+            if (e.key === " ") {
+                void videoRef.current?.play();
+            }
+        });
+        return () => {
+            hls.destroy();
+        };
+    }, [prop.streamId]);
+
+    return (
+        <video
+            muted
+            autoPlay
+            ref={videoRef}
+            controls={false}
+            className="relative mx-auto h-full w-full content-center object-contain"
+        />
     );
 }
