@@ -133,7 +133,7 @@ export default function Home() {
                                 onMouseLeave={() => setHoveredRow(null)}
                                 data-stream-id={stream.id}
                             >
-                                <td className="py-3 pe-1">
+                                <td className="w-0 py-3 pe-3">
                                     <Checkbox />
                                 </td>
                                 <td className="max-w-34 py-3 pe-1">
