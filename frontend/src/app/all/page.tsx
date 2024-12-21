@@ -113,7 +113,9 @@ export default function Home() {
                 </button>
             </div>
             <motion.div
-                className={clsx("pointer-events-none fixed")}
+                className={clsx("pointer-events-none fixed", {
+                    hidden: !spaceDown || !position || !activeStream,
+                })}
                 animate={{
                     aspectRatio: activeStream
                         ? `${activeStream.height}/${activeStream.width}`
@@ -124,17 +126,35 @@ export default function Home() {
                         420,
                     ),
                 }}
-                transition={{ type: "spring", damping: 12, bounce: 120 }}
+                transition={{
+                    type: "spring",
+                    damping: 12,
+                    bounce: 120,
+                    velocity: 120,
+                }}
                 style={{
                     top: position?.y,
                     left: position?.x,
                 }}
             >
-                <Arc
-                    hidden={!spaceDown || !position}
-                    className="pointer-events-none h-full w-full"
-                >
-                    <VideoPlayer streamId={hoveredRow ?? "cam"} />
+                <Arc className="pointer-events-none h-full w-full">
+                    <div
+                        className={clsx("top-0 left-0 h-full w-full", {
+                            hidden: activeStream?.id !== "cam",
+                            absolute: activeStream?.id !== "cam",
+                        })}
+                    >
+                        <VideoPlayer streamId={"cam"} />
+                    </div>
+
+                    <div
+                        className={clsx("top-0 left-0 h-full w-full", {
+                            hidden: activeStream?.id !== "m",
+                            absolute: activeStream?.id !== "m",
+                        })}
+                    >
+                        <VideoPlayer streamId={"m"} />
+                    </div>
                 </Arc>
             </motion.div>
             <table className="w-full">
