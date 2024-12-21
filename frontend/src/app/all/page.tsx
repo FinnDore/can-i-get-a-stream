@@ -1,6 +1,8 @@
 "use client";
 
+import { useSpring } from "@react-spring/web";
 import clsx from "clsx";
+import { motion } from "framer-motion";
 import Hls from "hls.js";
 import { Jersey_20 } from "next/font/google";
 import { useEffect, useRef, useState } from "react";
@@ -61,7 +63,7 @@ export default function Home() {
 
     useEffect(() => {
         const onKeyDown = (e: KeyboardEvent) => {
-            if (e.key === " ") {
+            if (e.key === " " && !e.repeat) {
                 document.body.classList.add("cursor-none");
                 setSpaceDown(true);
             }
@@ -100,7 +102,8 @@ export default function Home() {
             window.removeEventListener("mousemove", onMouseMove);
         };
     }, [spaceDown]);
-    console.log(hoveredRow);
+
+    const arcSpring = useSpring(() => ({}), [activeStream]);
 
     return (
         <div className="h-full w-full p-4 px-6">
@@ -112,19 +115,31 @@ export default function Home() {
                     Add Stream
                 </button>
             </div>
-            <Arc
-                hidden={!spaceDown || !position}
-                className="pointer-events-none fixed w-72"
-                style={{
-                    top: position?.y,
-                    left: position?.x,
+            <motion.div
+                className={clsx("pointer-events-none fixed")}
+                animate={{
                     aspectRatio: activeStream
                         ? `${activeStream.height}/${activeStream.width}`
                         : "auto",
+
+                    width: Math.max(
+                        Math.min((activeStream?.width ?? 1) / 3, 320),
+                        420,
+                    ),
+                }}
+                transition={{ type: "spring", damping: 12, bounce: 120 }}
+                style={{
+                    top: position?.y,
+                    left: position?.x,
                 }}
             >
-                <VideoPlayer streamId={hoveredRow ?? "cam"} />
-            </Arc>
+                <Arc
+                    hidden={!spaceDown || !position}
+                    className="pointer-events-none h-full w-full"
+                >
+                    <VideoPlayer streamId={hoveredRow ?? "cam"} />
+                </Arc>
+            </motion.div>
             <table className="w-full">
                 <thead className="text-left text-sm text-gray-700">
                     <tr>

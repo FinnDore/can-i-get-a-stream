@@ -19,7 +19,7 @@ export function Arc(props: {
             style={props.style}
         >
             <div className="noise absolute top-0 left-0 w-full rounded-md opacity-40 invert"></div>
-            <div className="min-h-full min-w-full overflow-hidden rounded-md border border-black/10 bg-[#fafafafa] shadow-lg">
+            <div className="max-h-full min-h-full max-w-full min-w-full overflow-hidden rounded-md border border-black/10 bg-[#fafafafa] shadow-lg">
                 {props.children}
             </div>
         </div>
