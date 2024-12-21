@@ -24,25 +24,29 @@ const streams = [
                 img: "/finn.gif",
             },
         ],
+        height: 1280,
+        width: 720,
     },
     {
         name: "Freya McKee - Blue (Official Video)",
         description: "Blue by Freya McKee",
         id: "m",
         uptime: "2 days",
+        height: 2880,
+        width: 2160,
     },
-    {
-        name: "Stream One",
-        description: "one",
-        id: "bbb",
-        uptime: "3.5 hours",
-    },
-    {
-        name: "Stream Two",
-        description: "two",
-        id: "f",
-        uptime: "6 minutes",
-    },
+    // {
+    //     name: "Stream One",
+    //     description: "one",
+    //     id: "bbb",
+    //     uptime: "3.5 hours",
+    // },
+    // {
+    //     name: "Stream Two",
+    //     description: "two",
+    //     id: "f",
+    //     uptime: "6 minutes",
+    // },
 ];
 
 export default function Home() {
@@ -52,6 +56,9 @@ export default function Home() {
     const [spaceDown, setSpaceDown] = useState(false);
     const [hoveredRow, setHoveredRow] = useState<string | null>(null);
     const tBodyRef = useRef<HTMLTableSectionElement>(null);
+
+    const activeStream = streams.find((s) => s.id === hoveredRow);
+
     useEffect(() => {
         const onKeyDown = (e: KeyboardEvent) => {
             if (e.key === " ") {
@@ -105,49 +112,51 @@ export default function Home() {
                     Add Stream
                 </button>
             </div>
-            <div className="relative">
-                <Arc
-                    hidden={!spaceDown || !position}
-                    className="pointer-events-none fixed w-72"
-                    style={{ top: position?.y, left: position?.x }}
-                >
-                    <VideoPlayer streamId={hoveredRow ?? "cam"} />
-                </Arc>
-                <table className="w-full">
-                    <thead className="text-left text-sm text-gray-700">
-                        <tr>
-                            <th className="pb-2 font-normal">
+            <Arc
+                hidden={!spaceDown || !position}
+                className="pointer-events-none fixed w-72"
+                style={{
+                    top: position?.y,
+                    left: position?.x,
+                    aspectRatio: activeStream
+                        ? `${activeStream.height}/${activeStream.width}`
+                        : "auto",
+                }}
+            >
+                <VideoPlayer streamId={hoveredRow ?? "cam"} />
+            </Arc>
+            <table className="w-full">
+                <thead className="text-left text-sm text-gray-700">
+                    <tr>
+                        <th className="pb-2 font-normal">
+                            <Checkbox />
+                        </th>
+                        <th className="pb-2 font-normal">Name</th>
+                        <th className="pb-2 font-normal">Description</th>
+                        <th className="pb-2 font-normal">Uptime</th>
+                    </tr>
+                </thead>
+                <tbody className="border-spacing-4" ref={tBodyRef}>
+                    {streams.map((stream, i) => (
+                        <tr
+                            key={stream.id}
+                            className="border-t border-black/10 last:border-b hover:bg-gray-50"
+                            onMouseEnter={() => setHoveredRow(stream.id)}
+                            onMouseLeave={() => setHoveredRow(null)}
+                            data-stream-id={stream.id}
+                        >
+                            <td className="w-0 py-3 pe-3">
                                 <Checkbox />
-                            </th>
-                            <th className="pb-2 font-normal">Name</th>
-                            <th className="pb-2 font-normal">Description</th>
-                            <th className="pb-2 font-normal">Uptime</th>
+                            </td>
+                            <td className="max-w-34 py-3 pe-1">
+                                {stream.name}
+                            </td>
+                            <td className="py-3 pe-1">{stream.description}</td>
+                            <td className="py-3 pe-1">{stream.uptime}</td>
                         </tr>
-                    </thead>
-                    <tbody className="border-spacing-4" ref={tBodyRef}>
-                        {streams.map((stream, i) => (
-                            <tr
-                                key={stream.id}
-                                className="border-t border-black/10 last:border-b hover:bg-gray-50"
-                                onMouseEnter={() => setHoveredRow(stream.id)}
-                                onMouseLeave={() => setHoveredRow(null)}
-                                data-stream-id={stream.id}
-                            >
-                                <td className="w-0 py-3 pe-3">
-                                    <Checkbox />
-                                </td>
-                                <td className="max-w-34 py-3 pe-1">
-                                    {stream.name}
-                                </td>
-                                <td className="py-3 pe-1">
-                                    {stream.description}
-                                </td>
-                                <td className="py-3 pe-1">{stream.uptime}</td>
-                            </tr>
-                        ))}
-                    </tbody>
-                </table>
-            </div>
+                    ))}
+                </tbody>
+            </table>
         </div>
     );
 }
@@ -178,7 +187,7 @@ function VideoPlayer(prop: { streamId: string }) {
             autoPlay
             ref={videoRef}
             controls={false}
-            className="relative mx-auto h-full w-full content-center object-contain"
+            className="relative h-full w-full content-center object-contain"
         />
     );
 }
