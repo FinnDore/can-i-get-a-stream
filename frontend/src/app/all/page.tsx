@@ -1,6 +1,5 @@
 "use client";
 
-import { useSpring } from "@react-spring/web";
 import clsx from "clsx";
 import { motion } from "framer-motion";
 import Hls from "hls.js";
@@ -103,8 +102,6 @@ export default function Home() {
         };
     }, [spaceDown]);
 
-    const arcSpring = useSpring(() => ({}), [activeStream]);
-
     return (
         <div className="h-full w-full p-4 px-6">
             <div className="mb-4 flex w-full justify-between">
@@ -122,8 +119,8 @@ export default function Home() {
                         ? `${activeStream.height}/${activeStream.width}`
                         : "auto",
 
-                    width: Math.max(
-                        Math.min((activeStream?.width ?? 1) / 3, 320),
+                    width: Math.min(
+                        Math.max((activeStream?.width ?? 1) / 4, 320),
                         420,
                     ),
                 }}
