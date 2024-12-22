@@ -1,22 +1,47 @@
-use std::{path::PathBuf, process::exit};
+use anyhow::{anyhow, Error};
+use chrono::format;
+use sqlx::{Pool, Sqlite, SqlitePool};
+use std::{
+    clone,
+    os::macos::raw::stat,
+    path::PathBuf,
+    process::{exit, Stdio},
+    time::Instant,
+};
 
 use axum::{
-    body::Body,
-    extract::{Path, Request},
-    http::{request::Parts, HeaderValue},
+    body::{self, Body},
+    extract::{rejection::LengthLimitError, Path, Query, State},
+    http::{request::Parts, status, HeaderValue},
     response::IntoResponse,
-    routing::get,
+    routing::{get, post},
     Router,
 };
-use hyper::StatusCode;
+use clap::{Args, Parser};
+use hyper::{HeaderMap, StatusCode};
+use serde::Deserialize;
+use tokio::{fs, io::AsyncWriteExt, process::Command};
 use tower_http::cors::{AllowOrigin, CorsLayer};
 use tracing::{error, info, instrument};
+use utils::{database_error, format_bytes, DatabaseConnection};
 
 mod utils;
+
+#[derive(Parser, Debug)]
+struct CliArgs {
+    #[arg(short, long)]
+    rescource_dir: PathBuf,
+}
+
+#[derive(Debug, Clone)]
+struct AppState {
+    resource_dir: PathBuf,
+}
 
 #[tokio::main]
 async fn main() {
     utils::init_logger();
+    let args = CliArgs::parse();
 
     let socket_addr = match utils::get_socket_addr() {
         Ok(host_and_port) => host_and_port,
@@ -25,13 +50,27 @@ async fn main() {
             exit(1);
         }
     };
+    let app_state = AppState {
+        resource_dir: args.rescource_dir.clone(),
+    };
+
+    fs::create_dir_all(&app_state.resource_dir)
+        .await
+        .expect("The rescource directory should be created.");
+
+    let mut db_path = args.rescource_dir.clone();
+    db_path.push("db");
+    let db_pool = utils::get_db(&db_path).await.expect("Failed to get db");
 
     let app = Router::new()
         .route("/stream/:streamId", get(stream))
         .route("/segment/:streamId/:segmentId", get(serve_segemnt))
+        .route("/upload", post(upload))
         .layer(CorsLayer::new().allow_origin(AllowOrigin::predicate(
             |_origin: &HeaderValue, _request_parts: &Parts| true,
-        )));
+        )))
+        .with_state(db_pool)
+        .with_state(app_state);
 
     let listener = tokio::net::TcpListener::bind(&socket_addr).await.unwrap();
     info!("listening on {}", socket_addr);
@@ -70,3 +109,179 @@ async fn serve_segemnt(Path((stream_id, segment_id)): Path<(String, String)>) ->
         }
     }
 }
+
+#[derive(Deserialize, Debug)]
+struct UploadOptions {
+    stream_name: String,
+    stream_description: String,
+    width: i64,
+    height: i64,
+}
+
+#[instrument(skip(query, db, req))]
+#[axum::debug_handler]
+async fn upload(
+    Query(query): Query<UploadOptions>,
+    db: State<Pool<Sqlite>>,
+    req: axum::http::Request<Body>,
+) -> Result<String, StatusCode> {
+    let id = uuid::Uuid::new_v4().to_string();
+
+    sqlx::query(
+        r#"insert into streams (id, name, description, startTime, width, height) values ($1, $2, $3, $4, $5, $6)"#,
+    )
+    .bind(&id)
+    .bind(query.stream_name)
+    .bind(query.stream_description)
+    .bind(chrono::Utc::now().timestamp())
+    .bind(query.width)
+    .bind(query.height)
+    .execute(&*db)
+    .await
+    .map_err(database_error)?;
+    info!("inserted stream");
+
+    let file = get_body_bytes(req).await?;
+
+    let m3u8_path = format!("index.m3u8");
+    let base_url = format!("http://localhost:3000/segment/{}/", id);
+    let base_segement_file_name = format!("%03d.ts");
+
+    tokio::fs::create_dir(format!("resources/{}", id))
+        .await
+        .unwrap();
+    let mut command = tokio::process::Command::new("ffmpeg");
+    let cmd = command
+        .stdin(Stdio::piped())
+        .args(vec![
+            "-i",
+            "pipe:0",
+            "-force_key_frames",
+            "expr:gte(t,n_forced*3)",
+            "-hls_time",
+            "3",
+            "-hls_flags",
+            "independent_segments",
+            "-hls_segment_filename",
+            &base_segement_file_name,
+            "-hls_base_url",
+            &base_url,
+            "-f",
+            "hls",
+            &m3u8_path,
+        ])
+        .current_dir(format!("resources/{}", id))
+        .spawn();
+
+    let mut child = match cmd {
+        Ok(child) => child,
+        Err(error) => {
+            error!(%error, "Failed to spawn ffmpeg process");
+            return Err(StatusCode::INTERNAL_SERVER_ERROR);
+        }
+    };
+
+    let mut child_stdin = match child.stdin.take() {
+        Some(stdin) => stdin,
+        None => {
+            let err = anyhow!("No stdin");
+            error!(%err, "could not take child stdin");
+            return Err(StatusCode::INTERNAL_SERVER_ERROR);
+        }
+    };
+
+    println!("writing to stdin");
+    if let Err(err) = child_stdin.write_all(&file).await {
+        error!(%err, "Failed to write to ffmpeg process stdin");
+    }
+    child_stdin.shutdown().await.unwrap();
+
+    info!("waiting for ffmpeg process");
+    let output = match child.wait().await {
+        Ok(status) => status,
+        Err(err) => {
+            error!(%err, "Failed to wait for ffmpeg process");
+            return Err(StatusCode::INTERNAL_SERVER_ERROR);
+        }
+    };
+
+    info!("proccesed file");
+    // println!("{}", String::from_utf8(output.stdout).unwrap());
+    // println!("{}", String::from_utf8(output.stderr).unwrap());
+    if !output.success() {
+        error!("Failed to process file");
+        return Err(StatusCode::INTERNAL_SERVER_ERROR);
+    }
+    info!("proccesed file");
+    Ok(id)
+}
+
+const ONE_KB: usize = 1024;
+const ONE_MB: usize = ONE_KB * 1024;
+const ONE_GB: usize = ONE_MB * 1024;
+
+async fn get_body_bytes(req: axum::http::Request<Body>) -> Result<Vec<u8>, StatusCode> {
+    let request_content_length = match req
+        .headers()
+        .get("content-length")
+        .map(|bytes| bytes.to_str().map(|s| s.parse::<i64>()))
+    {
+        Some(Ok(Ok(bytes))) => format_bytes(bytes),
+        Some(Ok(Err(err))) => {
+            error!(?err, "Error parsing content length {}", err);
+            return Err(StatusCode::BAD_REQUEST);
+        }
+        Some(Err(err)) => {
+            error!(?err, "Error getting content length {}", err);
+            return Err(StatusCode::BAD_REQUEST);
+        }
+        None => {
+            info!("No content length header");
+            return Err(StatusCode::BAD_REQUEST);
+        }
+    };
+    info!(
+        request_content_length,
+        "incoming parse demo request length {}", request_content_length
+    );
+
+    match axum::body::to_bytes(req.into_body(), ONE_GB).await {
+        Ok(demo_bytes) => Ok(demo_bytes.into()),
+        Err(err) => {
+            let is_large_body = std::error::Error::source(&err)
+                .map(|source| source.is::<LengthLimitError>())
+                .unwrap_or_default();
+
+            if is_large_body {
+                info!("requst payload too large {}", err);
+                return Err(StatusCode::PAYLOAD_TOO_LARGE);
+            }
+
+            error!(%err, "Error request body demo file {}", err);
+            Err(StatusCode::INTERNAL_SERVER_ERROR)
+        }
+    }
+}
+//  "-loglevel",
+//             "error",
+//             "-analyzeduration",
+//             "2147483647",
+//             "-probesize",
+//             "2147483647",
+//             "-f",
+//             "mp4",
+//             "-i",
+//             "pipe:0",
+//             "-force_key_frames",
+//             "expr:gte(t,n_forced*3)",
+//             "-hls_time",
+//             "3",
+//             "-hls_flags",
+//             "independent_segments",
+//             "-hls_segment_filename",
+//             &base_segement_file_name,
+//             "-hls_base_url",
+//             &base_url,
+//             "-f",
+//             "hls",
+//             &m3u8_path,

@@ -40,18 +40,27 @@ const streams = [
         name: "Finals",
         description: "top 500 gameplay",
         id: "game",
-        uptime: "1 days",
+        uptime: "1 day",
         height: 960,
         width: 1280,
+    },
+    {
+        name: "Minisota",
+        description: "Minisota by glaive",
+        id: "81d3158d-1d13-4410-a3ea-eb97294744ae",
+        uptime: "3 mins",
+        width: 1920,
+        height: 1080,
     },
     {
         name: "wide Finals",
         description: "top 500 gameplay but wide",
         id: "wide",
-        uptime: "1 days",
+        uptime: "1 day",
         height: 360,
         width: 1280,
     },
+
     // {
     //     name: "Stream One",
     //     description: "one",
@@ -189,6 +198,20 @@ export default function Home() {
                     >
                         <VideoPlayer streamId={"wide"} />
                     </div>
+                    <div
+                        className={clsx("top-0 left-0 h-full w-full", {
+                            hidden:
+                                activeStream?.id !==
+                                "81d3158d-1d13-4410-a3ea-eb97294744ae",
+                            absolute:
+                                activeStream?.id !==
+                                "81d3158d-1d13-4410-a3ea-eb97294744ae",
+                        })}
+                    >
+                        <VideoPlayer
+                            streamId={"81d3158d-1d13-4410-a3ea-eb97294744ae"}
+                        />
+                    </div>
                 </Arc>
             </motion.div>
             <table className="w-full">
@@ -203,7 +226,7 @@ export default function Home() {
                     </tr>
                 </thead>
                 <tbody className="border-spacing-4" ref={tBodyRef}>
-                    {streams.map((stream, i) => (
+                    {streams.map((stream) => (
                         <tr
                             key={stream.id}
                             className="border-t border-black/10 last:border-b hover:bg-gray-50"
