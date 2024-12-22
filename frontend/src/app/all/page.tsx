@@ -100,7 +100,6 @@ export default function Home() {
             if (e.key === " ") {
                 document.body.classList.remove("cursor-none");
                 setSpaceDown(false);
-                setPosition(null);
             }
         };
         window.addEventListener("keydown", onKeyDown);
@@ -113,12 +112,8 @@ export default function Home() {
     }, []);
 
     useEffect(() => {
-        if (!tBodyRef.current || !spaceDown) return;
-
         const onMouseMove = (e: MouseEvent) => {
-            if (!tBodyRef.current || !widthHight) return;
             setPosition({
-                // todo use real height
                 x: e.clientX,
                 y: e.clientY,
             });
@@ -129,7 +124,7 @@ export default function Home() {
         return () => {
             window.removeEventListener("mousemove", onMouseMove);
         };
-    }, [spaceDown]);
+    }, [setPosition]);
 
     return (
         <div className="h-full w-full p-4 px-6">
@@ -161,7 +156,7 @@ export default function Home() {
                     left: position?.x,
                 }}
             >
-                <Arc className="pointer-events-none h-full w-full">
+                <Arc className="pointer-events-none min-h-full min-w-full">
                     <div
                         className={clsx("top-0 left-0 h-full w-full", {
                             hidden: activeStream?.id !== "cam",
