@@ -4,7 +4,7 @@ import clsx from "clsx";
 import { motion } from "framer-motion";
 import Hls from "hls.js";
 import { Jersey_20 } from "next/font/google";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Arc } from "../_components/arc";
 import { Checkbox } from "../_components/checkbox";
 
@@ -25,16 +25,32 @@ const streams = [
                 img: "/finn.gif",
             },
         ],
-        height: 1280,
-        width: 720,
+        height: 720,
+        width: 1280,
     },
     {
         name: "Freya McKee - Blue (Official Video)",
         description: "Blue by Freya McKee",
         id: "m",
         uptime: "2 days",
-        height: 2880,
-        width: 2160,
+        height: 2160,
+        width: 2880,
+    },
+    {
+        name: "Finals",
+        description: "top 500 gameplay",
+        id: "game",
+        uptime: "1 days",
+        height: 960,
+        width: 1280,
+    },
+    {
+        name: "wide Finals",
+        description: "top 500 gameplay but wide",
+        id: "wide",
+        uptime: "1 days",
+        height: 360,
+        width: 1280,
     },
     // {
     //     name: "Stream One",
@@ -58,7 +74,20 @@ export default function Home() {
     const [hoveredRow, setHoveredRow] = useState<string | null>(null);
     const tBodyRef = useRef<HTMLTableSectionElement>(null);
 
-    const activeStream = streams.find((s) => s.id === hoveredRow);
+    const [widthHight, activeStream] = useMemo(() => {
+        const stream = streams.find((s) => s.id === hoveredRow);
+        if (!stream) return [null, null];
+        const width = Math.min(Math.max(stream.width / 4, 320), 420);
+        const height = width / (stream.width / stream.height);
+
+        return [
+            {
+                width,
+                height,
+            } as const,
+            stream,
+        ];
+    }, [hoveredRow]);
 
     useEffect(() => {
         const onKeyDown = (e: KeyboardEvent) => {
@@ -87,11 +116,11 @@ export default function Home() {
         if (!tBodyRef.current || !spaceDown) return;
 
         const onMouseMove = (e: MouseEvent) => {
-            if (!tBodyRef.current) return;
-            const boundingRect = tBodyRef.current.getBoundingClientRect();
+            if (!tBodyRef.current || !widthHight) return;
             setPosition({
-                x: e.clientX - boundingRect.left / 2,
-                y: e.clientY - boundingRect.top / 1.5,
+                // todo use real height
+                x: e.clientX,
+                y: e.clientY,
             });
         };
 
@@ -117,14 +146,9 @@ export default function Home() {
                     hidden: !spaceDown || !position || !activeStream,
                 })}
                 animate={{
-                    aspectRatio: activeStream
-                        ? `${activeStream.height}/${activeStream.width}`
-                        : "auto",
-
-                    width: Math.min(
-                        Math.max((activeStream?.width ?? 1) / 4, 320),
-                        420,
-                    ),
+                    width: widthHight?.width,
+                    height: widthHight?.height,
+                    transform: `translate(-${(widthHight?.width ?? 1) / 2}px, -${(widthHight?.height ?? 1) / 2}px)`,
                 }}
                 transition={{
                     type: "spring",
@@ -146,7 +170,6 @@ export default function Home() {
                     >
                         <VideoPlayer streamId={"cam"} />
                     </div>
-
                     <div
                         className={clsx("top-0 left-0 h-full w-full", {
                             hidden: activeStream?.id !== "m",
@@ -154,6 +177,22 @@ export default function Home() {
                         })}
                     >
                         <VideoPlayer streamId={"m"} />
+                    </div>
+                    <div
+                        className={clsx("top-0 left-0 h-full w-full", {
+                            hidden: activeStream?.id !== "game",
+                            absolute: activeStream?.id !== "game",
+                        })}
+                    >
+                        <VideoPlayer streamId={"game"} />
+                    </div>
+                    <div
+                        className={clsx("top-0 left-0 h-full w-full", {
+                            hidden: activeStream?.id !== "wide",
+                            absolute: activeStream?.id !== "wide",
+                        })}
+                    >
+                        <VideoPlayer streamId={"wide"} />
                     </div>
                 </Arc>
             </motion.div>
@@ -217,6 +256,7 @@ function VideoPlayer(prop: { streamId: string }) {
         <video
             muted
             autoPlay
+            loop
             ref={videoRef}
             controls={false}
             className="relative h-full w-full content-center object-contain"
