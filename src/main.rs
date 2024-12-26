@@ -1,29 +1,25 @@
-use anyhow::{anyhow, Error};
-use chrono::format;
-use sqlx::{Pool, Sqlite, SqlitePool};
+use anyhow::anyhow;
+use sqlx::{Pool, Sqlite};
 use std::{
-    clone,
-    os::macos::raw::stat,
     path::PathBuf,
     process::{exit, Stdio},
-    time::Instant,
 };
 
 use axum::{
-    body::{self, Body},
+    body::Body,
     extract::{rejection::LengthLimitError, Path, Query, State},
-    http::{request::Parts, status, HeaderValue},
+    http::{request::Parts, HeaderValue},
     response::IntoResponse,
     routing::{get, post},
     Router,
 };
-use clap::{Args, Parser};
-use hyper::{HeaderMap, StatusCode};
+use clap::Parser;
+use hyper::StatusCode;
 use serde::Deserialize;
-use tokio::{fs, io::AsyncWriteExt, process::Command};
+use tokio::{fs, io::AsyncWriteExt};
 use tower_http::cors::{AllowOrigin, CorsLayer};
 use tracing::{error, info, instrument};
-use utils::{database_error, format_bytes, DatabaseConnection};
+use utils::{database_error, format_bytes};
 
 mod utils;
 
@@ -151,8 +147,10 @@ async fn upload(
         .await
         .unwrap();
     let mut command = tokio::process::Command::new("ffmpeg");
+
     let cmd = command
         .stdin(Stdio::piped())
+        // todo maybe log this?
         .args(vec![
             "-i",
             "pipe:0",
@@ -160,6 +158,8 @@ async fn upload(
             "expr:gte(t,n_forced*3)",
             "-hls_time",
             "3",
+            "-tune",
+            "zerolatency",
             "-hls_flags",
             "independent_segments",
             "-hls_segment_filename",
@@ -190,13 +190,20 @@ async fn upload(
         }
     };
 
-    println!("writing to stdin");
+    info!("writing file to stdin");
     if let Err(err) = child_stdin.write_all(&file).await {
         error!(%err, "Failed to write to ffmpeg process stdin");
+        return Err(StatusCode::INTERNAL_SERVER_ERROR);
     }
-    child_stdin.shutdown().await.unwrap();
 
-    info!("waiting for ffmpeg process");
+    if let Err(err) = child_stdin.shutdown().await {
+        error!(%err, "Failed to write shutdown stdin");
+        return Err(StatusCode::INTERNAL_SERVER_ERROR);
+    }
+
+    drop(child_stdin);
+
+    info!("waiting for ffmpeg process to finish");
     let output = match child.wait().await {
         Ok(status) => status,
         Err(err) => {
@@ -205,9 +212,6 @@ async fn upload(
         }
     };
 
-    info!("proccesed file");
-    // println!("{}", String::from_utf8(output.stdout).unwrap());
-    // println!("{}", String::from_utf8(output.stderr).unwrap());
     if !output.success() {
         error!("Failed to process file");
         return Err(StatusCode::INTERNAL_SERVER_ERROR);
@@ -262,26 +266,3 @@ async fn get_body_bytes(req: axum::http::Request<Body>) -> Result<Vec<u8>, Statu
         }
     }
 }
-//  "-loglevel",
-//             "error",
-//             "-analyzeduration",
-//             "2147483647",
-//             "-probesize",
-//             "2147483647",
-//             "-f",
-//             "mp4",
-//             "-i",
-//             "pipe:0",
-//             "-force_key_frames",
-//             "expr:gte(t,n_forced*3)",
-//             "-hls_time",
-//             "3",
-//             "-hls_flags",
-//             "independent_segments",
-//             "-hls_segment_filename",
-//             &base_segement_file_name,
-//             "-hls_base_url",
-//             &base_url,
-//             "-f",
-//             "hls",
-//             &m3u8_path,
