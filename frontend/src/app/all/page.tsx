@@ -44,14 +44,7 @@ const streams = [
         height: 960,
         width: 1280,
     },
-    {
-        name: "Minisota",
-        description: "Minisota by glaive",
-        id: "81d3158d-1d13-4410-a3ea-eb97294744ae",
-        uptime: "3 mins",
-        width: 1920,
-        height: 1080,
-    },
+
     {
         name: "wide Finals",
         description: "top 500 gameplay but wide",
@@ -150,8 +143,8 @@ export default function Home() {
                     hidden: !spaceDown || !position || !activeStream,
                 })}
                 animate={{
-                    width: widthHight?.width,
-                    height: widthHight?.height,
+                    width: widthHight?.width ?? 0,
+                    height: widthHight?.height ?? 0,
                     transform: `translate(-${(widthHight?.width ?? 1) / 2}px, -${(widthHight?.height ?? 1) / 2}px)`,
                 }}
                 transition={{
@@ -197,20 +190,6 @@ export default function Home() {
                         })}
                     >
                         <VideoPlayer streamId={"wide"} />
-                    </div>
-                    <div
-                        className={clsx("top-0 left-0 h-full w-full", {
-                            hidden:
-                                activeStream?.id !==
-                                "81d3158d-1d13-4410-a3ea-eb97294744ae",
-                            absolute:
-                                activeStream?.id !==
-                                "81d3158d-1d13-4410-a3ea-eb97294744ae",
-                        })}
-                    >
-                        <VideoPlayer
-                            streamId={"81d3158d-1d13-4410-a3ea-eb97294744ae"}
-                        />
                     </div>
                 </Arc>
             </motion.div>

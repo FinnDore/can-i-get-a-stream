@@ -1,5 +1,6 @@
 use anyhow::anyhow;
-use sqlx::{Pool, Sqlite};
+use chrono::serde::ts_seconds;
+use sqlx::{prelude::FromRow, Pool, Sqlite};
 use std::{
     path::PathBuf,
     process::{exit, Stdio},
@@ -11,11 +12,11 @@ use axum::{
     http::{request::Parts, HeaderValue},
     response::IntoResponse,
     routing::{get, post},
-    Router,
+    Json, Router,
 };
 use clap::Parser;
 use hyper::StatusCode;
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use tokio::{fs, io::AsyncWriteExt};
 use tower_http::cors::{AllowOrigin, CorsLayer};
 use tracing::{error, info, instrument};
@@ -62,6 +63,7 @@ async fn main() {
         .route("/stream/:streamId", get(stream))
         .route("/segment/:streamId/:segmentId", get(serve_segemnt))
         .route("/upload", post(upload))
+        .route("/streams", get(get_streams))
         .layer(CorsLayer::new().allow_origin(AllowOrigin::predicate(
             |_origin: &HeaderValue, _request_parts: &Parts| true,
         )))
@@ -104,6 +106,30 @@ async fn serve_segemnt(Path((stream_id, segment_id)): Path<(String, String)>) ->
             return Err(StatusCode::NOT_FOUND);
         }
     }
+}
+
+#[instrument(skip(db))]
+#[axum::debug_handler]
+async fn get_streams(db: State<Pool<Sqlite>>) -> Result<Json<Vec<Stream>>, StatusCode> {
+    let streams = sqlx::query_as(r#"select * from streams order by startTime desc"#)
+        .fetch_all(&*db)
+        .await
+        .map_err(database_error)?;
+
+    Ok(Json(streams))
+}
+
+#[derive(Debug, Clone, FromRow, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+#[sqlx(rename_all = "camelCase")]
+struct Stream {
+    id: String,
+    name: String,
+    description: String,
+    #[serde(with = "ts_seconds")]
+    start_time: chrono::DateTime<chrono::Utc>,
+    width: i64,
+    height: i64,
 }
 
 #[derive(Deserialize, Debug)]
