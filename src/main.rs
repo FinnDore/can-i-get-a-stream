@@ -17,7 +17,10 @@ use axum::{
 use clap::Parser;
 use hyper::StatusCode;
 use serde::{Deserialize, Serialize};
-use tokio::{fs, io::AsyncWriteExt};
+use tokio::{
+    fs::{self, remove_dir},
+    io::AsyncWriteExt,
+};
 use tower_http::cors::{AllowOrigin, CorsLayer};
 use tracing::{error, info, instrument};
 use utils::{database_error, format_bytes};
@@ -166,12 +169,11 @@ async fn upload(
     let file = get_body_bytes(req).await?;
 
     let m3u8_path = format!("index.m3u8");
-    let base_url = format!("http://localhost:3000/segment/{}/", id);
+    let base_url = format!("http://localhost:3001/segment/{}/", id);
     let base_segement_file_name = format!("%03d.ts");
 
-    tokio::fs::create_dir(format!("resources/{}", id))
-        .await
-        .unwrap();
+    let rescources_dir = format!("resources/{}", id);
+    tokio::fs::create_dir(rescources_dir.clone()).await.unwrap();
     let mut command = tokio::process::Command::new("ffmpeg");
 
     let cmd = command
@@ -183,7 +185,9 @@ async fn upload(
             "-force_key_frames",
             "expr:gte(t,n_forced*3)",
             "-hls_time",
-            "3",
+            "2",
+            "-hls_list_size",
+            "0",
             "-tune",
             "zerolatency",
             "-hls_flags",
@@ -194,6 +198,8 @@ async fn upload(
             &base_url,
             "-f",
             "hls",
+            "-c:v",
+            "h264_videotoolbox",
             &m3u8_path,
         ])
         .current_dir(format!("resources/{}", id))
@@ -203,6 +209,10 @@ async fn upload(
         Ok(child) => child,
         Err(error) => {
             error!(%error, "Failed to spawn ffmpeg process");
+            // we can cleanup after
+            if let Err(err) = remove_dir(rescources_dir).await {
+                error!(%err, "Failed to remove resources dir");
+            }
             return Err(StatusCode::INTERNAL_SERVER_ERROR);
         }
     };
@@ -212,6 +222,9 @@ async fn upload(
         None => {
             let err = anyhow!("No stdin");
             error!(%err, "could not take child stdin");
+            if let Err(err) = remove_dir(rescources_dir).await {
+                error!(%err, "Failed to remove resources dir");
+            }
             return Err(StatusCode::INTERNAL_SERVER_ERROR);
         }
     };
@@ -219,11 +232,17 @@ async fn upload(
     info!("writing file to stdin");
     if let Err(err) = child_stdin.write_all(&file).await {
         error!(%err, "Failed to write to ffmpeg process stdin");
+        if let Err(err) = remove_dir(rescources_dir).await {
+            error!(%err, "Failed to remove resources dir");
+        }
         return Err(StatusCode::INTERNAL_SERVER_ERROR);
     }
 
     if let Err(err) = child_stdin.shutdown().await {
         error!(%err, "Failed to write shutdown stdin");
+        if let Err(err) = remove_dir(rescources_dir).await {
+            error!(%err, "Failed to remove resources dir");
+        }
         return Err(StatusCode::INTERNAL_SERVER_ERROR);
     }
 
@@ -234,12 +253,18 @@ async fn upload(
         Ok(status) => status,
         Err(err) => {
             error!(%err, "Failed to wait for ffmpeg process");
+            if let Err(err) = remove_dir(rescources_dir).await {
+                error!(%err, "Failed to remove resources dir");
+            }
             return Err(StatusCode::INTERNAL_SERVER_ERROR);
         }
     };
 
     if !output.success() {
         error!("Failed to process file");
+        if let Err(err) = remove_dir(rescources_dir).await {
+            error!(%err, "Failed to remove resources dir");
+        }
         return Err(StatusCode::INTERNAL_SERVER_ERROR);
     }
     info!("proccesed file");
@@ -275,7 +300,7 @@ async fn get_body_bytes(req: axum::http::Request<Body>) -> Result<Vec<u8>, Statu
         "incoming parse demo request length {}", request_content_length
     );
 
-    match axum::body::to_bytes(req.into_body(), ONE_GB).await {
+    match axum::body::to_bytes(req.into_body(), ONE_GB * 4).await {
         Ok(demo_bytes) => Ok(demo_bytes.into()),
         Err(err) => {
             let is_large_body = std::error::Error::source(&err)

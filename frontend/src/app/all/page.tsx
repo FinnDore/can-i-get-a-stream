@@ -1,5 +1,6 @@
 "use client";
 
+import { api } from "@/trpc/react";
 import clsx from "clsx";
 import { motion } from "framer-motion";
 import Hls from "hls.js";
@@ -7,77 +8,24 @@ import { Jersey_20 } from "next/font/google";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Arc } from "../_components/arc";
 import { Checkbox } from "../_components/checkbox";
+import { VideoOffIcon } from "../_components/icons/video-off";
 
 const jersey_20 = Jersey_20({
     weight: "400",
     subsets: ["latin"],
     display: "swap",
 });
-const streams = [
-    {
-        name: "Living Room",
-        description: "A room with a couch and a TV",
-        id: "cam",
-        uptime: "1 month",
-        viewers: [
-            {
-                name: "Finn",
-                img: "/finn.gif",
-            },
-        ],
-        height: 720,
-        width: 1280,
-    },
-    {
-        name: "Freya McKee - Blue (Official Video)",
-        description: "Blue by Freya McKee",
-        id: "m",
-        uptime: "2 days",
-        height: 2160,
-        width: 2880,
-    },
-    {
-        name: "Finals",
-        description: "top 500 gameplay",
-        id: "game",
-        uptime: "1 day",
-        height: 960,
-        width: 1280,
-    },
-
-    {
-        name: "wide Finals",
-        description: "top 500 gameplay but wide",
-        id: "wide",
-        uptime: "1 day",
-        height: 360,
-        width: 1280,
-    },
-
-    // {
-    //     name: "Stream One",
-    //     description: "one",
-    //     id: "bbb",
-    //     uptime: "3.5 hours",
-    // },
-    // {
-    //     name: "Stream Two",
-    //     description: "two",
-    //     id: "f",
-    //     uptime: "6 minutes",
-    // },
-];
 
 export default function Home() {
-    const [position, setPosition] = useState<{ x: number; y: number } | null>(
-        null,
-    );
+    const streamsQuery = api.streams.allStreams.useQuery();
+
     const [spaceDown, setSpaceDown] = useState(false);
     const [hoveredRow, setHoveredRow] = useState<string | null>(null);
     const tBodyRef = useRef<HTMLTableSectionElement>(null);
+    const pipRef = useRef<HTMLDivElement>(null);
 
     const [widthHight, activeStream] = useMemo(() => {
-        const stream = streams.find((s) => s.id === hoveredRow);
+        const stream = streamsQuery.data?.find((s) => s.id === hoveredRow);
         if (!stream) return [null, null];
         const width = Math.min(Math.max(stream.width / 4, 320), 420);
         const height = width / (stream.width / stream.height);
@@ -89,18 +37,16 @@ export default function Home() {
             } as const,
             stream,
         ];
-    }, [hoveredRow]);
+    }, [hoveredRow, streamsQuery.data]);
 
     useEffect(() => {
         const onKeyDown = (e: KeyboardEvent) => {
             if (e.key === " " && !e.repeat) {
-                document.body.classList.add("cursor-none");
                 setSpaceDown(true);
             }
         };
         const onKeyUp = (e: KeyboardEvent) => {
             if (e.key === " ") {
-                document.body.classList.remove("cursor-none");
                 setSpaceDown(false);
             }
         };
@@ -114,11 +60,18 @@ export default function Home() {
     }, []);
 
     useEffect(() => {
+        if (!activeStream) {
+            document.body.classList.remove("cursor-none");
+        } else {
+            document.body.classList.add("cursor-none");
+        }
+    }, [activeStream]);
+
+    useEffect(() => {
         const onMouseMove = (e: MouseEvent) => {
-            setPosition({
-                x: e.clientX,
-                y: e.clientY,
-            });
+            if (!pipRef.current) return;
+            pipRef.current.style.top = `${e.clientY}px`;
+            pipRef.current.style.left = `${e.clientX}px`;
         };
 
         window.addEventListener("mousemove", onMouseMove);
@@ -126,7 +79,7 @@ export default function Home() {
         return () => {
             window.removeEventListener("mousemove", onMouseMove);
         };
-    }, [setPosition]);
+    }, []);
 
     return (
         <div className="h-full w-full p-4 px-6">
@@ -139,8 +92,8 @@ export default function Home() {
                 </button>
             </div>
             <motion.div
-                className={clsx("pointer-events-none fixed", {
-                    hidden: !spaceDown || !position || !activeStream,
+                className={clsx("pointer-events-none fixed will-change-auto", {
+                    hidden: !spaceDown || !activeStream,
                 })}
                 animate={{
                     width: widthHight?.width ?? 0,
@@ -153,44 +106,20 @@ export default function Home() {
                     bounce: 120,
                     velocity: 120,
                 }}
-                style={{
-                    top: position?.y,
-                    left: position?.x,
-                }}
+                ref={pipRef}
             >
-                <Arc className="pointer-events-none min-h-full min-w-full">
-                    <div
-                        className={clsx("top-0 left-0 h-full w-full", {
-                            hidden: activeStream?.id !== "cam",
-                            absolute: activeStream?.id !== "cam",
-                        })}
-                    >
-                        <VideoPlayer streamId={"cam"} />
-                    </div>
-                    <div
-                        className={clsx("top-0 left-0 h-full w-full", {
-                            hidden: activeStream?.id !== "m",
-                            absolute: activeStream?.id !== "m",
-                        })}
-                    >
-                        <VideoPlayer streamId={"m"} />
-                    </div>
-                    <div
-                        className={clsx("top-0 left-0 h-full w-full", {
-                            hidden: activeStream?.id !== "game",
-                            absolute: activeStream?.id !== "game",
-                        })}
-                    >
-                        <VideoPlayer streamId={"game"} />
-                    </div>
-                    <div
-                        className={clsx("top-0 left-0 h-full w-full", {
-                            hidden: activeStream?.id !== "wide",
-                            absolute: activeStream?.id !== "wide",
-                        })}
-                    >
-                        <VideoPlayer streamId={"wide"} />
-                    </div>
+                <Arc className="pointer-events-none h-full min-h-full">
+                    {streamsQuery.data?.map((stream) => (
+                        <div
+                            key={stream.id}
+                            className={clsx("top-0 left-0", {
+                                hidden: activeStream?.id !== stream.id,
+                                absolute: activeStream?.id !== stream.id,
+                            })}
+                        >
+                            <VideoPlayer streamId={stream.id} />
+                        </div>
+                    ))}
                 </Arc>
             </motion.div>
             <table className="w-full">
@@ -205,7 +134,7 @@ export default function Home() {
                     </tr>
                 </thead>
                 <tbody className="border-spacing-4" ref={tBodyRef}>
-                    {streams.map((stream) => (
+                    {streamsQuery.data?.map((stream) => (
                         <tr
                             key={stream.id}
                             className="border-t border-black/10 last:border-b hover:bg-gray-50"
@@ -220,7 +149,7 @@ export default function Home() {
                                 {stream.name}
                             </td>
                             <td className="py-3 pe-1">{stream.description}</td>
-                            <td className="py-3 pe-1">{stream.uptime}</td>
+                            <td className="py-3 pe-1">{stream.startTime}</td>
                         </tr>
                     ))}
                 </tbody>
@@ -231,32 +160,63 @@ export default function Home() {
 
 function VideoPlayer(prop: { streamId: string }) {
     const videoRef = useRef<HTMLVideoElement>(null);
-
+    const [error, setError] = useState(false);
     useEffect(() => {
         if (!videoRef.current) return;
 
-        const hls = new Hls();
+        const hls = new Hls({
+            workerPath: "hls.worker.js",
+            enableWorker: true,
+        });
 
         hls.loadSource(`http://localhost:3001/stream/${prop.streamId}`);
+        hls.on(Hls.Events.ERROR, (e, a) => {
+            console.log(e, a);
+            setError(true);
+        });
+
         hls.attachMedia(videoRef.current);
         window.addEventListener("keyup", (e) => {
             if (e.key === " ") {
                 void videoRef.current?.play();
             }
         });
+
         return () => {
             hls.destroy();
         };
     }, [prop.streamId]);
 
     return (
-        <video
-            muted
-            autoPlay
-            loop
-            ref={videoRef}
-            controls={false}
-            className="relative h-full w-full content-center object-contain"
-        />
+        <>
+            {error && (
+                <div className="absolute top-0 left-0 flex h-full w-full max-w-full items-center justify-center gap-3 overflow-hidden text-sm">
+                    <VideoOffIcon
+                        height="20px"
+                        width="20px"
+                        secondaryfill="white"
+                        fill="#030712"
+                    />
+                    <div
+                        className={clsx(
+                            "z-10 text-xl text-nowrap text-gray-950",
+                            jersey_20.className,
+                        )}
+                    >
+                        Error loading stream
+                    </div>
+                </div>
+            )}
+            {!error && (
+                <video
+                    muted
+                    autoPlay
+                    loop
+                    ref={videoRef}
+                    controls={false}
+                    className="relative h-full w-full content-center object-contain"
+                />
+            )}
+        </>
     );
 }
