@@ -1,14 +1,20 @@
 use anyhow::anyhow;
-use sqlx::{Pool, Sqlite};
-use std::process::Stdio;
-
 use axum::{
-    body::Body,
+    body::{Body, BodyDataStream},
     extract::{rejection::LengthLimitError, Query, State},
 };
+use futures::TryStreamExt;
+use tokio::io::{self, AsyncBufReadExt, AsyncReadExt};
+
 use hyper::StatusCode;
 use serde::Deserialize;
+use sqlx::{Pool, Sqlite};
+use std::{borrow::Borrow, os::fd::AsFd, process::Stdio};
 use tokio::{fs::remove_dir, io::AsyncWriteExt};
+use tokio_util::{
+    bytes::buf::{self, Reader},
+    io::StreamReader,
+};
 use tracing::{error, info, instrument};
 use utils::{database_error, format_bytes};
 
@@ -45,7 +51,11 @@ pub async fn upload(
     .map_err(database_error)?;
     info!("inserted stream");
 
-    let file = get_body_bytes(req).await?;
+    let mut file = StreamReader::new(
+        get_body_bytes(req)
+            .await?
+            .map_err(|err| io::Error::new(io::ErrorKind::Other, err)),
+    );
 
     let m3u8_path = format!("index.m3u8");
     let base_url = format!("http://localhost:3001/segment/{}/", id);
@@ -109,12 +119,30 @@ pub async fn upload(
     };
 
     info!("writing file to stdin");
-    if let Err(err) = child_stdin.write_all(&file).await {
-        error!(%err, "Failed to write to ffmpeg process stdin");
-        if let Err(err) = remove_dir(rescources_dir).await {
-            error!(%err, "Failed to remove resources dir");
+    let mut buff = vec![0; 1024 * 50];
+    loop {
+        match file.read_exact(&mut buff).await {
+            // TODO check for to large
+            Ok(written_bytes) => {
+                if let Err(err) = child_stdin.write_all(&buff[..written_bytes]).await {
+                    error!(%err, "Failed to write to ffmpeg process stdin");
+                    if let Err(err) = remove_dir(rescources_dir).await {
+                        error!(%err, "Failed to remove resources dir");
+                    }
+
+                    return Err(StatusCode::INTERNAL_SERVER_ERROR);
+                }
+            }
+            Err(err) => {
+                if err.kind() == io::ErrorKind::UnexpectedEof {
+                    break;
+                }
+                if let Err(err) = remove_dir(rescources_dir).await {
+                    error!(%err, "Failed to remove resources dir");
+                }
+                return Err(StatusCode::INTERNAL_SERVER_ERROR);
+            }
         }
-        return Err(StatusCode::INTERNAL_SERVER_ERROR);
     }
 
     if let Err(err) = child_stdin.shutdown().await {
@@ -154,7 +182,7 @@ const ONE_KB: usize = 1024;
 const ONE_MB: usize = ONE_KB * 1024;
 const ONE_GB: usize = ONE_MB * 1024;
 
-async fn get_body_bytes(req: axum::http::Request<Body>) -> Result<Vec<u8>, StatusCode> {
+async fn get_body_bytes(req: axum::http::Request<Body>) -> Result<BodyDataStream, StatusCode> {
     let request_content_length = match req
         .headers()
         .get("content-length")
@@ -179,20 +207,5 @@ async fn get_body_bytes(req: axum::http::Request<Body>) -> Result<Vec<u8>, Statu
         "incoming parse demo request length {}", request_content_length
     );
 
-    match axum::body::to_bytes(req.into_body(), ONE_GB * 4).await {
-        Ok(demo_bytes) => Ok(demo_bytes.into()),
-        Err(err) => {
-            let is_large_body = std::error::Error::source(&err)
-                .map(|source| source.is::<LengthLimitError>())
-                .unwrap_or_default();
-
-            if is_large_body {
-                info!("requst payload too large {}", err);
-                return Err(StatusCode::PAYLOAD_TOO_LARGE);
-            }
-
-            error!(%err, "Error request body demo file {}", err);
-            Err(StatusCode::INTERNAL_SERVER_ERROR)
-        }
-    }
+    Ok(req.into_body().into_data_stream())
 }
