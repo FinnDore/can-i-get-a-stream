@@ -2,7 +2,7 @@ use std::{path::PathBuf, process::exit};
 
 use axum::{
     http::{request::Parts, HeaderValue},
-    routing::{get, post},
+    routing::{delete, get, post},
     Router,
 };
 use clap::Parser;
@@ -50,6 +50,7 @@ async fn main() {
 
     let app = Router::new()
         .route("/stream/:streamId", get(api::serve::stream))
+        .route("/stream/:streamId", delete(api::serve::delete_stream))
         .route(
             "/segment/:streamId/:segmentId",
             get(api::serve::serve_segemnt),

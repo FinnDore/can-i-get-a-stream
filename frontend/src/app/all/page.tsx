@@ -60,12 +60,12 @@ export default function Home() {
     }, []);
 
     useEffect(() => {
-        if (!activeStream) {
-            document.body.classList.remove("cursor-none");
-        } else {
+        if (spaceDown && activeStream) {
             document.body.classList.add("cursor-none");
+        } else {
+            document.body.classList.remove("cursor-none");
         }
-    }, [activeStream]);
+    }, [activeStream, spaceDown]);
 
     useEffect(() => {
         const onMouseMove = (e: MouseEvent) => {

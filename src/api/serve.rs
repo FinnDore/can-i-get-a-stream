@@ -10,7 +10,7 @@ use axum::{
     Json,
 };
 use hyper::StatusCode;
-use tracing::{error, info, instrument};
+use tracing::{error, info, instrument, warn};
 
 #[instrument()]
 pub async fn stream(Path(stream_id): Path<String>) -> impl IntoResponse {
@@ -48,12 +48,37 @@ pub async fn serve_segemnt(
 }
 
 #[instrument(skip(db))]
-#[axum::debug_handler]
 pub async fn get_streams(db: State<Pool<Sqlite>>) -> Result<Json<Vec<Stream>>, StatusCode> {
-    let streams = sqlx::query_as(r#"select * from streams order by startTime desc"#)
+    let streams = sqlx::query_as(r#"SELECT * FROM `streams` ORDER BY `startTime` DESC"#)
         .fetch_all(&*db)
         .await
         .map_err(database_error)?;
 
     Ok(Json(streams))
+}
+
+#[instrument(skip(db))]
+pub async fn delete_stream(
+    Path(stream_id): Path<String>,
+    db: State<Pool<Sqlite>>,
+) -> Result<(), StatusCode> {
+    info!("Deleting stream");
+    let deleted = sqlx::query(r#"DELETE FROM `streams` where id = $1"#)
+        .bind(stream_id.clone())
+        .execute(&*db)
+        .await
+        .map_err(database_error)?;
+
+    if deleted.rows_affected() == 0 {
+        warn!("Stream not found");
+        return Err(StatusCode::NOT_FOUND);
+    }
+
+    let path = format!("resources/{}", stream_id);
+    if let Err(err) = tokio::fs::remove_dir_all(PathBuf::from(&path)).await {
+        error!(?err, path, "Delete stream {}", err);
+        return Err(StatusCode::NOT_FOUND);
+    }
+
+    Ok(())
 }
