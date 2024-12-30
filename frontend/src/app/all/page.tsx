@@ -9,6 +9,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Arc } from "../_components/arc";
 import { Checkbox } from "../_components/checkbox";
 import { VideoOffIcon } from "../_components/icons/video-off";
+import { Elapased } from "../_components/since";
 
 const jersey_20 = Jersey_20({
     weight: "400",
@@ -149,7 +150,9 @@ export default function Home() {
                                 {stream.name}
                             </td>
                             <td className="py-3 pe-1">{stream.description}</td>
-                            <td className="py-3 pe-1">{stream.startTime}</td>
+                            <td className="py-3 pe-1">
+                                <Elapased date={stream.startTime} />
+                            </td>
                         </tr>
                     ))}
                 </tbody>

@@ -1,4 +1,4 @@
-import { streamsRouter } from "@/server/api/routers/post";
+import { streamsRouter } from "@/server/api/routers/streams";
 import { createCallerFactory, createTRPCRouter } from "@/server/api/trpc";
 
 /**

@@ -53,7 +53,7 @@ pub async fn upload(
     .bind(&id)
     .bind(query.stream_name)
     .bind(query.stream_description)
-    .bind(chrono::Utc::now().timestamp())
+    .bind(chrono::Utc::now())
     .bind(query.width)
     .bind(query.height)
     .execute(&*db)

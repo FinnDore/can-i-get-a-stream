@@ -9,7 +9,6 @@ pub struct Stream {
     id: String,
     name: String,
     description: String,
-    #[serde(with = "ts_seconds")]
     start_time: chrono::DateTime<chrono::Utc>,
     width: i64,
     height: i64,
