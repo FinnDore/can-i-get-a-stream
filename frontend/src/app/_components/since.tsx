@@ -12,5 +12,5 @@ export function Elapased(props: { date: Date }) {
         return () => clearInterval(interval);
     }, [props.date]);
 
-    return <div>{elapsed}</div>;
+    return elapsed;
 }

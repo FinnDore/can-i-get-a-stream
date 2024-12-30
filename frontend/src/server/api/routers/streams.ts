@@ -8,7 +8,7 @@ const streamsSchema = z.object({
     id: z.string(),
     name: z.string(),
     description: z.string(),
-    startTime: z.string().pipe(z.coerce.date()),
+    startTime: z.string().pipe(z.coerce.date({})),
     width: z.number(),
     height: z.number(),
 });

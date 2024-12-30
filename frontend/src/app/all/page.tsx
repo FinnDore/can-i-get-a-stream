@@ -2,6 +2,7 @@
 
 import { api } from "@/trpc/react";
 import clsx from "clsx";
+import { intlFormat } from "date-fns";
 import { motion } from "framer-motion";
 import Hls from "hls.js";
 import { Jersey_20 } from "next/font/google";
@@ -10,6 +11,7 @@ import { Arc } from "../_components/arc";
 import { Checkbox } from "../_components/checkbox";
 import { VideoOffIcon } from "../_components/icons/video-off";
 import { Elapased } from "../_components/since";
+import { ToolTip } from "../_components/tooltip";
 
 const jersey_20 = Jersey_20({
     weight: "400",
@@ -151,7 +153,21 @@ export default function Home() {
                             </td>
                             <td className="py-3 pe-1">{stream.description}</td>
                             <td className="py-3 pe-1">
-                                <Elapased date={stream.startTime} />
+                                <ToolTip
+                                    tooltip={intlFormat(stream.startTime, {
+                                        year: "2-digit",
+                                        month: "2-digit",
+                                        day: "2-digit",
+                                        hour: "2-digit",
+                                        minute: "2-digit",
+                                        second: "2-digit",
+                                        formatMatcher: "basic",
+                                    })}
+                                >
+                                    <span>
+                                        <Elapased date={stream.startTime} />
+                                    </span>
+                                </ToolTip>
                             </td>
                         </tr>
                     ))}
