@@ -154,14 +154,10 @@ export default function Home() {
                             <td className="py-3 pe-1">{stream.description}</td>
                             <td className="py-3 pe-1">
                                 <ToolTip
+                                    enabled={!activeStream && !spaceDown}
                                     tooltip={intlFormat(stream.startTime, {
-                                        year: "2-digit",
-                                        month: "2-digit",
-                                        day: "2-digit",
-                                        hour: "2-digit",
-                                        minute: "2-digit",
-                                        second: "2-digit",
-                                        formatMatcher: "basic",
+                                        dateStyle: "medium",
+                                        timeStyle: "long",
                                     })}
                                 >
                                     <span>
