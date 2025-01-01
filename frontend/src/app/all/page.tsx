@@ -21,11 +21,18 @@ const jersey_20 = Jersey_20({
 
 export default function Home() {
     const streamsQuery = api.streams.allStreams.useQuery();
+    const deleteStreamsMutation = api.streams.deleteStream.useMutation({
+        onSuccess: () => {
+            void streamsQuery.refetch();
+        },
+    });
 
     const [spaceDown, setSpaceDown] = useState(false);
     const [hoveredRow, setHoveredRow] = useState<string | null>(null);
     const tBodyRef = useRef<HTMLTableSectionElement>(null);
     const pipRef = useRef<HTMLDivElement>(null);
+    const [selectedStreams, setSelectedStreams] = useState<string[]>([]);
+    const [allSelected, setAllSelected] = useState(false);
 
     const [widthHight, activeStream, sliceToRender] = useMemo(() => {
         if (!streamsQuery.data) return [null, null, null];
@@ -115,10 +122,32 @@ export default function Home() {
 
     return (
         <div className="h-full w-full p-4 px-6">
-            <div className="mb-4 flex w-full justify-between">
+            <div className="mb-4 flex w-full justify-between gap-4">
                 <h1 className={clsx("text-2xl font-bold", jersey_20.className)}>
                     All Streams
                 </h1>
+                {(selectedStreams.length > 0 || allSelected) && (
+                    <button
+                        className="pointer ms-auto cursor-pointer rounded-md bg-red-600 px-2.5 py-1 text-white"
+                        onClick={() => {
+                            if (allSelected) {
+                                for (const stream of streamsQuery.data ?? []) {
+                                    deleteStreamsMutation.mutate({
+                                        id: stream.id,
+                                    });
+                                }
+                            } else
+                                for (const stream of selectedStreams) {
+                                    deleteStreamsMutation.mutate({
+                                        id: stream,
+                                    });
+                                }
+                        }}
+                    >
+                        Delete Stream{selectedStreams.length > 1 ? "s" : ""}
+                    </button>
+                )}
+
                 <button className="pointer cursor-pointer rounded-md bg-black px-2.5 py-1 text-white">
                     Add Stream
                 </button>
@@ -158,7 +187,13 @@ export default function Home() {
                 <thead className="text-left text-sm text-gray-700">
                     <tr>
                         <th className="pb-2 font-normal">
-                            <Checkbox />
+                            <Checkbox
+                                onClick={() => {
+                                    setAllSelected(!allSelected);
+                                    setSelectedStreams([]);
+                                }}
+                                checked={allSelected}
+                            />
                         </th>
                         <th className="pb-2 font-normal">Name</th>
                         <th className="pb-2 font-normal">Description</th>
@@ -173,9 +208,23 @@ export default function Home() {
                             onMouseEnter={() => setHoveredRow(stream.id)}
                             onMouseLeave={() => setHoveredRow(null)}
                             data-stream-id={stream.id}
+                            onClick={() => {
+                                setSelectedStreams(
+                                    selectedStreams.includes(stream.id)
+                                        ? selectedStreams.filter(
+                                              (s) => s !== stream.id,
+                                          )
+                                        : [...selectedStreams, stream.id],
+                                );
+                            }}
                         >
                             <td className="w-0 py-3 pe-3">
-                                <Checkbox />
+                                <Checkbox
+                                    checked={
+                                        selectedStreams.includes(stream.id) ||
+                                        allSelected
+                                    }
+                                />
                             </td>
                             <td className="max-w-34 py-3 pe-1">
                                 {stream.name}

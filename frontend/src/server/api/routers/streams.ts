@@ -19,4 +19,25 @@ export const streamsRouter = createTRPCRouter({
             .then((res) => res.json())
             .then((res) => streamsSchema.array().parse(res));
     }),
+    deleteStream: publicProcedure
+        .input(
+            z.object({
+                id: z.string(),
+            }),
+        )
+        .mutation(async ({ input }) => {
+            return fetch(`${baseUrl}/stream/${input.id}`, {
+                method: "DELETE",
+            }).then((res) => {
+                if (!res.ok) {
+                    console.error(
+                        "Failed to delete stream",
+                        res.status,
+                        res.statusText,
+                        res,
+                    );
+                    throw new Error("Failed to delete stream");
+                }
+            });
+        }),
 });
