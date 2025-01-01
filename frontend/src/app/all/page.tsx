@@ -34,10 +34,15 @@ export default function Home() {
         const stream = streamsQuery.data?.[index];
         if (!stream) return [null, null, null];
 
-        const width = Math.min(Math.max(stream.width / 4, 320), 420);
-        const height = width / (stream.width / stream.height);
+        let width = Math.min(Math.max(stream.width / 4, 320), 420);
+        let height = width / (stream.width / stream.height);
 
-        const padding = 2;
+        while (height > 460 && width > 250) {
+            height -= 10;
+            width -= 10;
+        }
+        console.log(width, height);
+        const padding = spaceDown ? 2 : 0;
         const start = Math.max(0, index - padding);
         // + 1 beacuse this includes the active stream
         const end = Math.min(streamsQuery.data.length, index + padding + 1);
@@ -54,7 +59,7 @@ export default function Home() {
             stream,
             sliceToRender,
         ];
-    }, [hoveredRow, streamsQuery.data]);
+    }, [hoveredRow, streamsQuery.data, spaceDown]);
 
     useEffect(() => {
         const onKeyDown = (e: KeyboardEvent) => {
@@ -86,17 +91,27 @@ export default function Home() {
 
     useEffect(() => {
         const onMouseMove = (e: MouseEvent) => {
-            if (!pipRef.current) return;
-            pipRef.current.style.top = `${e.clientY}px`;
+            if (!pipRef.current || !widthHight) return;
+            console.log(
+                widthHight.height / 2 - e.clientY,
+                e.clientY,
+                widthHight.height / 2,
+            );
+            const padding = 12;
+            const yOverflow = e.clientY - padding - widthHight.height / 2;
+            if (yOverflow < 0) {
+                pipRef.current.style.top = `${e.clientY + Math.abs(yOverflow)}px`;
+            } else {
+                pipRef.current.style.top = `${e.clientY}px`;
+            }
             pipRef.current.style.left = `${e.clientX}px`;
         };
 
         window.addEventListener("mousemove", onMouseMove);
-
         return () => {
             window.removeEventListener("mousemove", onMouseMove);
         };
-    }, []);
+    }, [widthHight]);
 
     return (
         <div className="h-full w-full p-4 px-6">
