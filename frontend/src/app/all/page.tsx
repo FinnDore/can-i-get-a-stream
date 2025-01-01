@@ -27,18 +27,32 @@ export default function Home() {
     const tBodyRef = useRef<HTMLTableSectionElement>(null);
     const pipRef = useRef<HTMLDivElement>(null);
 
-    const [widthHight, activeStream] = useMemo(() => {
-        const stream = streamsQuery.data?.find((s) => s.id === hoveredRow);
-        if (!stream) return [null, null];
+    const [widthHight, activeStream, sliceToRender] = useMemo(() => {
+        if (!streamsQuery.data) return [null, null, null];
+        const index = streamsQuery.data?.findIndex((s) => s.id === hoveredRow);
+        if (typeof index === "undefined") return [null, null, null];
+        const stream = streamsQuery.data?.[index];
+        if (!stream) return [null, null, null];
+
         const width = Math.min(Math.max(stream.width / 4, 320), 420);
         const height = width / (stream.width / stream.height);
 
+        const padding = 2;
+        const start = Math.max(0, index - padding);
+        // + 1 beacuse this includes the active stream
+        const end = Math.min(streamsQuery.data.length, index + padding + 1);
+        const sliceToRender = streamsQuery.data
+            ?.slice(start, index)
+            .concat(streamsQuery.data?.slice(index, end));
+
+        console.log(sliceToRender);
         return [
             {
                 width,
                 height,
             } as const,
             stream,
+            sliceToRender,
         ];
     }, [hoveredRow, streamsQuery.data]);
 
@@ -112,7 +126,7 @@ export default function Home() {
                 ref={pipRef}
             >
                 <Arc className="pointer-events-none h-full min-h-full">
-                    {streamsQuery.data?.map((stream) => (
+                    {sliceToRender?.map((stream) => (
                         <div
                             key={stream.id}
                             className={clsx("top-0 left-0", {
@@ -182,6 +196,7 @@ function VideoPlayer(prop: { streamId: string }) {
         const hls = new Hls({
             workerPath: "hls.worker.js",
             enableWorker: true,
+            lowLatencyMode: true,
         });
 
         hls.loadSource(`http://localhost:3001/stream/${prop.streamId}`);
