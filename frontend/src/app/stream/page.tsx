@@ -28,6 +28,7 @@ export default function Home() {
             utils.streams.allStreams.setQueriesData(undefined, {}, (curr) => {
                 return curr?.filter((s) => s.id !== input.id);
             });
+            setSelectedStreams((curr) => curr?.filter((s) => s !== input.id));
             void streamsQuery.refetch();
         },
     });
