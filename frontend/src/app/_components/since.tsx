@@ -12,5 +12,9 @@ export function Elapased(props: { date: Date }) {
         return () => clearInterval(interval);
     }, [props.date]);
 
-    return elapsed;
+    return (
+        <div className="contents" suppressHydrationWarning>
+            {elapsed}
+        </div>
+    );
 }

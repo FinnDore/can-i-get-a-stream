@@ -6,6 +6,7 @@ import { intlFormat } from "date-fns";
 import { motion } from "framer-motion";
 import Hls from "hls.js";
 import { Jersey_20 } from "next/font/google";
+import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Arc } from "../_components/arc";
 import { Checkbox } from "../_components/checkbox";
@@ -36,7 +37,6 @@ export default function Home() {
     const tBodyRef = useRef<HTMLTableSectionElement>(null);
     const pipRef = useRef<HTMLDivElement>(null);
     const [selectedStreams, setSelectedStreams] = useState<string[]>([]);
-    const [allSelected, setAllSelected] = useState(false);
 
     const [widthHight, activeStream, sliceToRender] = useMemo(() => {
         if (!streamsQuery.data) return [null, null, null];
@@ -45,10 +45,10 @@ export default function Home() {
         const stream = streamsQuery.data?.[index];
         if (!stream) return [null, null, null];
 
-        let width = Math.min(Math.max(stream.width / 4, 320), 420);
+        let width = Math.min(Math.max(stream.width / 4, 520), 520);
         let height = width / (stream.width / stream.height);
 
-        while (height > 460 && width > 250) {
+        while (height > 620) {
             height -= 10;
             width -= 10;
         }
@@ -124,22 +124,15 @@ export default function Home() {
                 <h1 className={clsx("text-2xl font-bold", jersey_20.className)}>
                     All Streams
                 </h1>
-                {(selectedStreams.length > 0 || allSelected) && (
+                {selectedStreams.length > 0 && (
                     <button
                         className="pointer ms-auto cursor-pointer rounded-md bg-red-600 px-2.5 py-1 text-white"
                         onClick={() => {
-                            if (allSelected) {
-                                for (const stream of streamsQuery.data ?? []) {
-                                    deleteStreamsMutation.mutate({
-                                        id: stream.id,
-                                    });
-                                }
-                            } else
-                                for (const stream of selectedStreams) {
-                                    deleteStreamsMutation.mutate({
-                                        id: stream,
-                                    });
-                                }
+                            for (const stream of selectedStreams) {
+                                deleteStreamsMutation.mutate({
+                                    id: stream,
+                                });
+                            }
                         }}
                     >
                         Delete Stream{selectedStreams.length > 1 ? "s" : ""}
@@ -187,10 +180,25 @@ export default function Home() {
                         <th className="pb-2 font-normal">
                             <Checkbox
                                 onClick={() => {
-                                    setAllSelected(!allSelected);
-                                    setSelectedStreams([]);
+                                    if (selectedStreams.length === 0) {
+                                        setSelectedStreams(
+                                            streamsQuery?.data?.map(
+                                                (s) => s.id,
+                                            ) ?? [],
+                                        );
+                                        return;
+                                    } else {
+                                        setSelectedStreams([]);
+                                    }
                                 }}
-                                checked={allSelected}
+                                checked={
+                                    !!(
+                                        streamsQuery.data?.length &&
+                                        selectedStreams.length > 0 &&
+                                        selectedStreams.length ===
+                                            selectedStreams?.length
+                                    )
+                                }
                             />
                         </th>
                         <th className="pb-2 font-normal">Name</th>
@@ -206,7 +214,9 @@ export default function Home() {
                             onMouseEnter={() => setHoveredRow(stream.id)}
                             onMouseLeave={() => setHoveredRow(null)}
                             data-stream-id={stream.id}
-                            onClick={() => {
+                            onClick={(e) => {
+                                if (!e.ctrlKey && !e.metaKey) return;
+
                                 setSelectedStreams(
                                     selectedStreams.includes(stream.id)
                                         ? selectedStreams.filter(
@@ -214,32 +224,63 @@ export default function Home() {
                                           )
                                         : [...selectedStreams, stream.id],
                                 );
+                                e.preventDefault();
+                                e.stopPropagation();
+                                return false;
                             }}
                         >
                             <td className="w-0 py-3 pe-3">
                                 <Checkbox
-                                    checked={
-                                        selectedStreams.includes(stream.id) ||
-                                        allSelected
-                                    }
+                                    onClick={() => {
+                                        setSelectedStreams(
+                                            selectedStreams.includes(stream.id)
+                                                ? selectedStreams.filter(
+                                                      (s) => s !== stream.id,
+                                                  )
+                                                : [
+                                                      ...selectedStreams,
+                                                      stream.id,
+                                                  ],
+                                        );
+                                    }}
+                                    checked={selectedStreams.includes(
+                                        stream.id,
+                                    )}
                                 />
                             </td>
-                            <td className="max-w-34 py-3 pe-1">
-                                {stream.name}
-                            </td>
-                            <td className="py-3 pe-1">{stream.description}</td>
-                            <td className="py-3 pe-1">
-                                <ToolTip
-                                    enabled={!activeStream && !spaceDown}
-                                    tooltip={intlFormat(stream.startTime, {
-                                        dateStyle: "medium",
-                                        timeStyle: "long",
-                                    })}
+                            <td className="max-w-34">
+                                <Link
+                                    href={`/stream/${stream.id}`}
+                                    className="block w-full py-3 pe-3"
                                 >
-                                    <span>
-                                        <Elapased date={stream.startTime} />
-                                    </span>
-                                </ToolTip>
+                                    {stream.name}
+                                </Link>
+                            </td>
+                            <td>
+                                <Link
+                                    href={`/stream/${stream.id}`}
+                                    className="block w-full py-3 pe-3"
+                                >
+                                    {stream.description}
+                                </Link>
+                            </td>
+                            <td>
+                                <Link
+                                    href={`/stream/${stream.id}`}
+                                    className="block w-full py-3 pe-3"
+                                >
+                                    <ToolTip
+                                        enabled={!activeStream && !spaceDown}
+                                        tooltip={intlFormat(stream.startTime, {
+                                            dateStyle: "medium",
+                                            timeStyle: "long",
+                                        })}
+                                    >
+                                        <span>
+                                            <Elapased date={stream.startTime} />
+                                        </span>
+                                    </ToolTip>
+                                </Link>
                             </td>
                         </tr>
                     ))}
