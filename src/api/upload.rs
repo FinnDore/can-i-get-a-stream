@@ -71,7 +71,7 @@ pub async fn upload(
     let base_url = format!("http://localhost:3001/segment/{}/", id);
     let base_segement_file_name = format!("%03d.ts");
 
-    let rescources_dir = format!("resources/{}", id);
+    let rescources_dir = format!("/{}", id);
     tokio::fs::create_dir(rescources_dir.clone()).await.unwrap();
     let mut command = tokio::process::Command::new("ffmpeg");
 
@@ -101,7 +101,7 @@ pub async fn upload(
             "h264_videotoolbox",
             &m3u8_path,
         ])
-        .current_dir(format!("resources/{}", id))
+        .current_dir(format!("/{}", id))
         .spawn();
 
     let mut child = match cmd {
