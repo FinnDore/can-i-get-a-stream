@@ -80,5 +80,6 @@ pub async fn delete_stream(
         return Err(StatusCode::NOT_FOUND);
     }
 
+    info!("Deleted stream");
     Ok(())
 }

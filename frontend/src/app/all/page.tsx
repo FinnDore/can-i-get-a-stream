@@ -20,9 +20,13 @@ const jersey_20 = Jersey_20({
 });
 
 export default function Home() {
+    const utils = api.useUtils();
     const streamsQuery = api.streams.allStreams.useQuery();
     const deleteStreamsMutation = api.streams.deleteStream.useMutation({
-        onSuccess: () => {
+        onSettled: (_, __, input) => {
+            utils.streams.allStreams.setQueriesData(undefined, {}, (curr) => {
+                return curr?.filter((s) => s.id !== input.id);
+            });
             void streamsQuery.refetch();
         },
     });
@@ -48,7 +52,6 @@ export default function Home() {
             height -= 10;
             width -= 10;
         }
-        console.log(width, height);
         const padding = spaceDown ? 2 : 0;
         const start = Math.max(0, index - padding);
         // + 1 beacuse this includes the active stream
@@ -57,7 +60,6 @@ export default function Home() {
             ?.slice(start, index)
             .concat(streamsQuery.data?.slice(index, end));
 
-        console.log(sliceToRender);
         return [
             {
                 width,
@@ -99,11 +101,7 @@ export default function Home() {
     useEffect(() => {
         const onMouseMove = (e: MouseEvent) => {
             if (!pipRef.current || !widthHight) return;
-            console.log(
-                widthHight.height / 2 - e.clientY,
-                e.clientY,
-                widthHight.height / 2,
-            );
+
             const padding = 12;
             const yOverflow = e.clientY - padding - widthHight.height / 2;
             if (yOverflow < 0) {
