@@ -48,8 +48,8 @@ export default function GoLive() {
                             );
 
                         const query = new URLSearchParams();
-                        query.append("name", "test");
-                        query.append("description", "test");
+                        query.append("stream_name", "test");
+                        query.append("stream_description", "test");
                         query.append(
                             "width",
                             `${captureStream.getVideoTracks()[0]?.getSettings().width}`,
@@ -59,6 +59,12 @@ export default function GoLive() {
                             `${captureStream.getVideoTracks()[0]?.getSettings().height}`,
                         );
                         const track = captureStream.getVideoTracks()[0];
+                        // pub struct UploadOptions {
+                        //     streamName: String,
+                        //     streamDescription: String,
+                        //     width: i64,
+                        //     height: i64,
+                        // }
 
                         console.log(track, video);
                         if (!track) return;
@@ -68,7 +74,7 @@ export default function GoLive() {
                         setMediaStream(captureStream);
 
                         void fetch(
-                            `http://localhost:3001/upload?${query.toString()}`,
+                            `https://can-i-get-a-stream-production.up.railway.app/upload?${query.toString()}`,
                             {
                                 method: "POST",
                                 // @ts-expect-error idk
@@ -76,7 +82,7 @@ export default function GoLive() {
                                 body: mediaStreamToReadableStream(
                                     captureStream,
                                 ),
-                                allowHTTP1ForStreamingUpload: true,
+                                // allowHTTP1ForStreamingUpload: true,
                             },
                         ).catch((e) => {
                             console.error(e);

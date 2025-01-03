@@ -174,30 +174,6 @@ const ONE_MB: usize = ONE_KB * 1024;
 const ONE_GB: usize = ONE_MB * 1024;
 
 async fn get_body_bytes(req: axum::http::Request<Body>) -> Result<BodyDataStream, StatusCode> {
-    let request_content_length = match req
-        .headers()
-        .get("content-length")
-        .map(|bytes| bytes.to_str().map(|s| s.parse::<i64>()))
-    {
-        Some(Ok(Ok(bytes))) => format_bytes(bytes),
-        Some(Ok(Err(err))) => {
-            error!(?err, "Error parsing content length {}", err);
-            return Err(StatusCode::BAD_REQUEST);
-        }
-        Some(Err(err)) => {
-            error!(?err, "Error getting content length {}", err);
-            return Err(StatusCode::BAD_REQUEST);
-        }
-        None => {
-            info!("No content length header");
-            return Err(StatusCode::BAD_REQUEST);
-        }
-    };
-    info!(
-        request_content_length,
-        "incoming parse demo request length {}", request_content_length
-    );
-
     Ok(req.into_body().into_data_stream())
 }
 
