@@ -17,16 +17,25 @@ const jersey_20 = Jersey_20({
 
 export function Nav() {
     return (
-        <nav className="flex h-full w-[225px] min-w-[225px] flex-col p-2.5 pe-0">
+        <nav className="flex h-full w-[225px] min-w-[225px] flex-col gap-2.5 p-2.5 pe-0">
             <h1
                 className={clsx(
-                    "flexl mb-3 justify-center gap-2 text-3xl font-bold",
+                    "justify-center gap-2 text-3xl font-bold",
                     jersey_20.className,
                 )}
             >
                 {/* <SharkWaterIcon /> */}
                 <span className="my-auto leading-0">Stream</span>
             </h1>
+            <Link
+                href={"/go-live"}
+                className={clsx(
+                    "rounded-md border-1 border-dashed border-black/20 bg-gray-100 px-4 py-2 text-center text-xl leading-none font-bold text-gray-700 shadow-inner transition-all hover:border-black/50 hover:text-gray-950",
+                    jersey_20.className,
+                )}
+            >
+                Go Live
+            </Link>
             <div className="flex flex-col gap-2 font-medium text-gray-700">
                 <Link
                     href={"/stream"}
@@ -78,6 +87,7 @@ function VideoPlayer(props: { reatach: () => void; detached: boolean }) {
                 ref={videoRef}
                 className="aspect-auto h-full w-full"
                 controls={false}
+                loop
             />
             {props.detached && (
                 <div className="pointer-events-none absolute top-0 w-full opacity-0 transition-opacity group-hover:opacity-100">

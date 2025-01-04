@@ -41,7 +41,9 @@ function VideoPlayer(prop: { streamId: string }) {
         hls.loadSource(`http://localhost:3001/stream/${prop.streamId}`);
         hls.on(Hls.Events.ERROR, (e, a) => {
             console.log(e, a);
-            setError(true);
+            if (a.fatal) {
+                setError(true);
+            }
         });
 
         hls.attachMedia(videoRef.current);

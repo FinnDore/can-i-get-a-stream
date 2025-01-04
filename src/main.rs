@@ -2,12 +2,13 @@ use std::{path::PathBuf, process::exit};
 
 use axum::{
     http::{request::Parts, HeaderValue},
-    routing::{delete, get, post},
+    routing::{any, delete, get, post},
     Router,
 };
 use clap::Parser;
 use tokio::fs::{self};
 use tower_http::cors::{AllowOrigin, CorsLayer};
+use tower_http::trace::TraceLayer;
 use tracing::{error, info};
 
 mod api;
@@ -56,12 +57,14 @@ async fn main() {
             get(api::serve::serve_segemnt),
         )
         .route("/upload", post(api::upload::upload))
+        .route("/upload/ws", get(api::upload::upload_ws))
         .route("/streams", get(api::serve::get_streams))
         .layer(CorsLayer::new().allow_origin(AllowOrigin::predicate(
             |_origin: &HeaderValue, _request_parts: &Parts| true,
         )))
         .with_state(db_pool)
-        .with_state(app_state);
+        .with_state(app_state)
+        .layer(TraceLayer::new_for_http());
 
     let listener = tokio::net::TcpListener::bind(&socket_addr).await.unwrap();
     info!("listening on {}", socket_addr);

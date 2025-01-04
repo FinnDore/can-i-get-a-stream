@@ -21,13 +21,17 @@ const jersey_20 = Jersey_20({
 });
 
 export default function Home() {
+    const [selectedStreams, setSelectedStreams] = useState<string[]>([]);
     const utils = api.useUtils();
     const streamsQuery = api.streams.allStreams.useQuery();
     const deleteStreamsMutation = api.streams.deleteStream.useMutation({
-        onSettled: (_, __, input) => {
+        onSuccess: (_, input) => {
             utils.streams.allStreams.setQueriesData(undefined, {}, (curr) => {
                 return curr?.filter((s) => s.id !== input.id);
             });
+            setSelectedStreams((curr) => curr?.filter((s) => s !== input.id));
+        },
+        onSettled: () => {
             void streamsQuery.refetch();
         },
     });
@@ -36,7 +40,6 @@ export default function Home() {
     const [hoveredRow, setHoveredRow] = useState<string | null>(null);
     const tBodyRef = useRef<HTMLTableSectionElement>(null);
     const pipRef = useRef<HTMLDivElement>(null);
-    const [selectedStreams, setSelectedStreams] = useState<string[]>([]);
 
     const [widthHight, activeStream, sliceToRender] = useMemo(() => {
         if (!streamsQuery.data) return [null, null, null];
