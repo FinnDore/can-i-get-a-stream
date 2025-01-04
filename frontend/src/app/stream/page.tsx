@@ -37,6 +37,7 @@ export default function Home() {
     });
 
     const [spaceDown, setSpaceDown] = useState(false);
+    const [overflow, setOverflow] = useState({ x: 0, y: 0 });
     const [hoveredRow, setHoveredRow] = useState<string | null>(null);
     const tBodyRef = useRef<HTMLTableSectionElement>(null);
     const pipRef = useRef<HTMLDivElement>(null);
@@ -108,7 +109,8 @@ export default function Home() {
             const padding = 12;
             const yOverflow = e.clientY - padding - widthHight.height / 2;
             if (yOverflow < 0) {
-                pipRef.current.style.top = `${e.clientY + Math.abs(yOverflow)}px`;
+                setOverflow({ x: 0, y: Math.abs(yOverflow) });
+                pipRef.current.style.top = `${e.clientY}px`;
             } else {
                 pipRef.current.style.top = `${e.clientY}px`;
             }
@@ -153,7 +155,7 @@ export default function Home() {
                 animate={{
                     width: widthHight?.width ?? 0,
                     height: widthHight?.height ?? 0,
-                    transform: `translate(-${(widthHight?.width ?? 1) / 2}px, -${(widthHight?.height ?? 1) / 2}px)`,
+                    transform: `translate(-${(widthHight?.width ?? 1) / 2}px, -${(widthHight?.height ?? 1) / 2 - overflow.y}px)`,
                 }}
                 transition={{
                     type: "spring",
