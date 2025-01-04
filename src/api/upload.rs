@@ -68,10 +68,10 @@ pub async fn upload(
     );
 
     let m3u8_path = format!("index.m3u8");
-    let base_url = format!("http://localhost:3001/segment/{}/", id);
+    let base_url = format!("https://localhost:3001/segment/{}/", id);
     let base_segement_file_name = format!("%03d.ts");
 
-    let rescources_dir = format!("/{}", id);
+    let rescources_dir = format!("resources/{}", id);
     tokio::fs::create_dir(rescources_dir.clone()).await.unwrap();
     let mut command = tokio::process::Command::new("ffmpeg");
 
@@ -101,7 +101,7 @@ pub async fn upload(
             "h264_videotoolbox",
             &m3u8_path,
         ])
-        .current_dir(format!("/{}", id))
+        .current_dir(format!("resources/{}", id))
         .spawn();
 
     let mut child = match cmd {

@@ -74,7 +74,7 @@ export default function GoLive() {
                         setMediaStream(captureStream);
 
                         void fetch(
-                            `https://can-i-get-a-stream-production.up.railway.app/upload?${query.toString()}`,
+                            `https://localhost:3001/upload?${query.toString()}`,
                             {
                                 method: "POST",
                                 // @ts-expect-error idk

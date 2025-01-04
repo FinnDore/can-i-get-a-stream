@@ -71,7 +71,10 @@ function VideoPlayer(props: { reatach: () => void; detached: boolean }) {
         if (!videoRef.current) return;
 
         const hls = new Hls();
-        hls.loadSource("http://localhost:3001/stream/cam");
+        hls.loadSource(
+            "https://localhost:3001/stream/d6cdbb03-dc2d-4ff3-bfa8-392d318f4b02",
+        );
+
         hls.attachMedia(videoRef.current);
         window.addEventListener("keyup", (e) => {
             if (e.key === " ") {
@@ -86,7 +89,8 @@ function VideoPlayer(props: { reatach: () => void; detached: boolean }) {
                 autoPlay
                 ref={videoRef}
                 className="aspect-auto h-full w-full"
-                controls={false}
+                controls={true}
+                loop
             />
             {props.detached && (
                 <div className="pointer-events-none absolute top-0 w-full opacity-0 transition-opacity group-hover:opacity-100">

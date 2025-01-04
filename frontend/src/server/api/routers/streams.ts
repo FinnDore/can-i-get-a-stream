@@ -2,7 +2,7 @@ import { z } from "zod";
 
 import { createTRPCRouter, publicProcedure } from "@/server/api/trpc";
 
-const baseUrl = "http://localhost:3001";
+const baseUrl = "https://localhost:3001";
 
 const streamsSchema = z.object({
     id: z.string(),
@@ -17,7 +17,11 @@ export const streamsRouter = createTRPCRouter({
     allStreams: publicProcedure.query(async ({}) => {
         return fetch(`${baseUrl}/streams`)
             .then((res) => res.json())
-            .then((res) => streamsSchema.array().parse(res));
+            .then((res) => streamsSchema.array().parse(res))
+            .catch((e) => {
+                console.error(e);
+                throw new Error("Failed to fetch streams");
+            });
     }),
     deleteStream: publicProcedure
         .input(

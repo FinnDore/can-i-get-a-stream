@@ -1,12 +1,22 @@
-use std::{path::PathBuf, process::exit};
+use std::{
+    path::{Path, PathBuf},
+    process::exit,
+    sync::Arc,
+};
 
 use axum::{
     http::{request::Parts, HeaderValue},
     routing::{delete, get, post},
     Router,
 };
+use axum_server::tls_rustls::RustlsConfig;
 use clap::Parser;
 use tokio::fs::{self};
+use tokio_rustls::rustls::{
+    client::danger::ServerCertVerified,
+    pki_types::{pem::PemObject, CertificateDer, PrivateKeyDer},
+    ServerConfig,
+};
 use tower_http::cors::{AllowOrigin, CorsLayer};
 use tower_http::trace::TraceLayer;
 use tracing::{error, info};
@@ -49,6 +59,18 @@ async fn main() {
     db_path.push("db");
     let db_pool = utils::get_db(&db_path).await.expect("Failed to get db");
 
+    rustls::crypto::ring::default_provider()
+        .install_default()
+        .expect("Failed to install rustls crypto provider");
+    let config = RustlsConfig::from_pem_file(
+        PathBuf::from("/Users/finn/Documents/GitHub/can-i-get-a-stream/self_signed_certs")
+            .join("localhost.crt"),
+        PathBuf::from("/Users/finn/Documents/GitHub/can-i-get-a-stream/self_signed_certs")
+            .join("localhost.key"),
+    )
+    .await
+    .unwrap();
+
     let app = Router::new()
         .route("/stream/:streamId", get(api::serve::stream))
         .route("/stream/:streamId", delete(api::serve::delete_stream))
@@ -65,7 +87,9 @@ async fn main() {
         .with_state(app_state)
         .layer(TraceLayer::new_for_http());
 
-    let listener = tokio::net::TcpListener::bind(&socket_addr).await.unwrap();
     info!("listening on {}", socket_addr);
-    axum::serve(listener, app).await.unwrap();
+    axum_server::bind_rustls(socket_addr, config)
+        .serve(app.into_make_service())
+        .await
+        .unwrap();
 }
