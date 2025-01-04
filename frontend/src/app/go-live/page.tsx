@@ -102,12 +102,3 @@ export default function GoLive() {
         </div>
     );
 }
-
-function mediaStreamToReadableStream(
-    mediaStream: MediaStream,
-    timeslice = 100,
-) {
-    return new ReadableStream({
-        start(ctrl) {},
-    });
-}

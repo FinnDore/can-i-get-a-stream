@@ -1,8 +1,7 @@
 import { z } from "zod";
 
+import { env } from "@/env";
 import { createTRPCRouter, publicProcedure } from "@/server/api/trpc";
-
-const baseUrl = "http://localhost:3001";
 
 const streamsSchema = z.object({
     id: z.string(),
@@ -15,7 +14,7 @@ const streamsSchema = z.object({
 
 export const streamsRouter = createTRPCRouter({
     allStreams: publicProcedure.query(async ({}) => {
-        return fetch(`${baseUrl}/streams`)
+        return fetch(`${env.BACKEND_URL}/streams`)
             .then((res) => res.json())
             .then((res) => streamsSchema.array().parse(res));
     }),
@@ -26,7 +25,7 @@ export const streamsRouter = createTRPCRouter({
             }),
         )
         .mutation(async ({ input }) => {
-            return fetch(`${baseUrl}/stream/${input.id}`, {
+            return fetch(`${env.BACKEND_URL}/stream/${input.id}`, {
                 method: "DELETE",
             }).then((res) => {
                 if (!res.ok) {

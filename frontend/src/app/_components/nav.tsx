@@ -73,7 +73,7 @@ function VideoPlayer(props: { reatach: () => void; detached: boolean }) {
         if (!videoRef.current || !first) return;
 
         const hls = new Hls();
-        hls.loadSource("http://localhost:3001/stream/" + first.id);
+        hls.loadSource(`/backend/stream/${first.id}`);
         hls.attachMedia(videoRef.current);
         window.addEventListener("keyup", (e) => {
             if (e.key === " ") {
@@ -88,11 +88,11 @@ function VideoPlayer(props: { reatach: () => void; detached: boolean }) {
     return (
         <div className="group relative mx-auto overflow-hidden rounded-md border border-black/30">
             <video
-                autoPlay
-                ref={videoRef}
                 className="aspect-auto h-full w-full"
+                ref={videoRef}
                 controls={false}
                 loop
+                autoPlay
             />
             {props.detached && (
                 <div className="pointer-events-none absolute top-0 w-full opacity-0 transition-opacity group-hover:opacity-100">

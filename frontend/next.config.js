@@ -3,8 +3,30 @@
  * for Docker builds.
  */
 import "./src/env.js";
+import { env } from "./src/env.js";
 
 /** @type {import("next").NextConfig} */
-const config = {};
+const config = {
+    async rewrites() {
+        return {
+            beforeFiles: [
+                {
+                    source: "/backend/stream/:streamId",
+                    destination: `${env.BACKEND_URL}/stream/:streamId`,
+                },
+                {
+                    source: "/backend/segment/:streamId/:segmentId",
+                    destination: `${env.BACKEND_URL}/segment/:streamId/:segmentId`,
+                },
+                {
+                    source: "/backend/stream/:streamId",
+                    destination: `${env.BACKEND_URL}/stream/:streamId`,
+                },
+            ],
+            afterFiles: [],
+            fallback: [],
+        };
+    },
+};
 
 export default config;

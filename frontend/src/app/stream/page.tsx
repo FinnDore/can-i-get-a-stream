@@ -307,7 +307,8 @@ function VideoPlayer(prop: { streamId: string }) {
             lowLatencyMode: true,
         });
 
-        hls.loadSource(`http://localhost:3001/stream/${prop.streamId}`);
+        hls.loadSource(`/backend/stream/${prop.streamId}`);
+
         hls.on(Hls.Events.ERROR, (e, a) => {
             console.log(e, a);
             setError(true);

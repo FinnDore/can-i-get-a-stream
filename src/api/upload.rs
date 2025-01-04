@@ -73,7 +73,7 @@ pub async fn upload(
     );
 
     let m3u8_path = format!("index.m3u8");
-    let base_url = format!("http://localhost:3001/segment/{}/", id);
+    let base_url = format!("/backend/segment/{}/", id);
     let base_segement_file_name = format!("%03d.ts");
 
     let rescources_dir = format!("resources/{}", id);
@@ -205,7 +205,7 @@ async fn handle_ws(socket: WebSocket, opts: UploadOptions, db: State<Pool<Sqlite
     info!("inserted stream");
 
     let m3u8_path = format!("index.m3u8");
-    let base_url = format!("http://localhost:3001/segment/{}/", id);
+    let base_url = format!("/backend/segment/{}/", id);
     let base_segement_file_name = format!("%03d.ts");
 
     let rescources_dir = format!("resources/{}", id);
