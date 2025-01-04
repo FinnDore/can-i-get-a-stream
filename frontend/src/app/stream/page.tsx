@@ -121,7 +121,7 @@ export default function Home() {
         return () => {
             window.removeEventListener("mousemove", onMouseMove);
         };
-    }, [widthHight]);
+    }, [widthHight, spaceDown]);
 
     return (
         <div className="h-full w-full p-4 px-6">

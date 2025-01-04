@@ -67,18 +67,23 @@ export function Nav() {
 function VideoPlayer(props: { reatach: () => void; detached: boolean }) {
     const videoRef = useRef<HTMLVideoElement>(null);
 
+    const streamsQuery = api.streams.allStreams.useQuery();
     useEffect(() => {
-        if (!videoRef.current) return;
+        const first = streamsQuery.data?.[0];
+        if (!videoRef.current || !first) return;
 
         const hls = new Hls();
-        hls.loadSource("http://localhost:3001/stream/cam");
+        hls.loadSource("http://localhost:3001/stream/" + first.id);
         hls.attachMedia(videoRef.current);
         window.addEventListener("keyup", (e) => {
             if (e.key === " ") {
                 void videoRef.current?.play();
             }
         });
-    }, []);
+        return () => {
+            hls.destroy();
+        };
+    }, [streamsQuery.data]);
 
     return (
         <div className="group relative mx-auto overflow-hidden rounded-md border border-black/30">
@@ -127,6 +132,7 @@ function Profile() {
     );
 }
 
+import { api } from "@/trpc/react";
 import { forwardRef, type HTMLProps } from "react";
 import { XmarkSmIcon } from "./icons/xmark-sm";
 
