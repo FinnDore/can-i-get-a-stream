@@ -1,14 +1,22 @@
 "use client";
+import { api } from "@/trpc/react";
 import { animated, config, useSpring } from "@react-spring/web";
 import { clsx } from "clsx";
 import Hls from "hls.js";
 import { Jersey_20 } from "next/font/google";
 import Link from "next/link";
-import { useEffect, useMemo, useRef, useState } from "react";
+import {
+    forwardRef,
+    useEffect,
+    useMemo,
+    useRef,
+    useState,
+    type HTMLProps,
+} from "react";
 import { GearIcon } from "./icons/gear";
 import { ViewAllIcon } from "./icons/view-all";
+import { XmarkSmIcon } from "./icons/xmark-sm";
 
-// If loading a variable font, you don't need to specify the font weight
 const jersey_20 = Jersey_20({
     weight: "400",
     subsets: ["latin"],
@@ -27,15 +35,7 @@ export function Nav() {
                 {/* <SharkWaterIcon /> */}
                 <span className="my-auto leading-0">Stream</span>
             </h1>
-            <Link
-                href={"/go-live"}
-                className={clsx(
-                    "rounded-md border-1 border-dashed border-black/20 bg-gray-100 px-4 py-2 text-center text-xl leading-none font-bold text-gray-700 shadow-inner transition-all hover:border-black/50 hover:text-gray-950",
-                    jersey_20.className,
-                )}
-            >
-                Go Live
-            </Link>
+
             <div className="flex flex-col gap-2 font-medium text-gray-700">
                 <Link
                     href={"/stream"}
@@ -53,12 +53,20 @@ export function Nav() {
                 </Link>
             </div>
 
-            <Pip className="mt-auto flex w-full items-center justify-center">
+            <Link
+                href={"/go-live"}
+                className={clsx(
+                    "mt-auto rounded-md border-1 border-dashed border-black/20 bg-gray-100 px-4 py-2 text-center text-xl leading-none font-bold text-gray-700 shadow-inner transition-all hover:border-black/50 hover:text-gray-950",
+                    jersey_20.className,
+                )}
+            >
+                Go Live
+            </Link>
+            <Pip className="flex w-full items-center justify-center">
                 {(detached, reatach) => (
                     <VideoPlayer reatach={reatach} detached={detached} />
                 )}
             </Pip>
-            <div></div>
             <Profile />
         </nav>
     );
@@ -122,7 +130,7 @@ function VideoPlayer(props: { reatach: () => void; detached: boolean }) {
 
 function Profile() {
     return (
-        <div className="mt-4 flex w-full gap-2">
+        <div className="mt-1.5 flex w-full gap-2">
             <Pfp name="Finn" image="/finn.gif" className="h-9 w-9" />
             <div className="my-auto leading-none">
                 <div className="font-bold">Finn</div>
@@ -131,10 +139,6 @@ function Profile() {
         </div>
     );
 }
-
-import { api } from "@/trpc/react";
-import { forwardRef, type HTMLProps } from "react";
-import { XmarkSmIcon } from "./icons/xmark-sm";
 
 export const Pfp = forwardRef<
     HTMLDivElement,
