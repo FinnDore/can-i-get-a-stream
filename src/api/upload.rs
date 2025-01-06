@@ -10,8 +10,8 @@ use axum::{
 };
 use futures::{future::IntoStream, stream::MapErr, TryStreamExt};
 use tokio::{
-    io::{self, AsyncBufReadExt, AsyncReadExt},
-    process::ChildStdin,
+    io::{self, AsyncBufReadExt, AsyncRead, AsyncReadExt},
+    process::{ChildStderr, ChildStdin, ChildStdout},
 };
 
 use futures::stream::StreamExt;
@@ -52,20 +52,6 @@ pub async fn upload(
 ) -> Result<String, StatusCode> {
     let id = uuid::Uuid::new_v4().to_string();
 
-    sqlx::query(
-        r#"insert into streams (id, name, description, startTime, width, height) values ($1, $2, $3, $4, $5, $6)"#,
-    )
-    .bind(&id)
-    .bind(query.stream_name)
-    .bind(query.stream_description)
-    .bind(chrono::Utc::now())
-    .bind(query.width)
-    .bind(query.height)
-    .execute(&*db)
-    .await
-    .map_err(database_error)?;
-    info!("inserted stream");
-
     let file = StreamReader::new(
         get_body_bytes(req)
             .await?
@@ -82,14 +68,22 @@ pub async fn upload(
 
     let cmd = command
         .stdin(Stdio::piped())
+        .stderr(Stdio::piped())
+        .stdout(Stdio::piped())
         // todo maybe log this?
         .args(vec![
+            "-progress",
+            "-",
+            "-stats",
             "-i",
             "pipe:0",
             "-force_key_frames",
             "expr:gte(t,n_forced*3)",
             "-hls_time",
             "2",
+            // Not for live
+            "-live_start_index",
+            "0",
             "-hls_list_size",
             "0",
             "-tune",
@@ -121,6 +115,30 @@ pub async fn upload(
         }
     };
 
+    let mut child_stderr = match child.stderr.take() {
+        Some(stderr) => stderr,
+        None => {
+            let err = anyhow!("No stdout");
+            error!(%err, "could not take child stderr");
+            if let Err(err) = remove_dir(rescources_dir).await {
+                error!(%err, "Failed to remove resources dir");
+            }
+            return Err(StatusCode::INTERNAL_SERVER_ERROR);
+        }
+    };
+
+    let mut child_stdout = match child.stdout.take() {
+        Some(stdout) => stdout,
+        None => {
+            let err = anyhow!("No stdout");
+            error!(%err, "could not take child stdout");
+            if let Err(err) = remove_dir(rescources_dir).await {
+                error!(%err, "Failed to remove resources dir");
+            }
+            return Err(StatusCode::INTERNAL_SERVER_ERROR);
+        }
+    };
+
     let mut child_stdin = match child.stdin.take() {
         Some(stdin) => stdin,
         None => {
@@ -133,23 +151,73 @@ pub async fn upload(
         }
     };
 
-    if let Err(err) = read_into_stdin(&mut child_stdin, file).await {
-        error!(%err, "Failed to write to ffmpeg process stdin");
-        if let Err(err) = remove_dir(rescources_dir).await {
-            error!(%err, "Failed to remove resources dir");
+    let resources_dir_for_write = rescources_dir.clone();
+    let write_to_stdin_future = async move {
+        if let Err(err) = read_into_stdin(&mut child_stdin, file).await {
+            error!(%err, "Failed to write to ffmpeg process stdin");
+            if let Err(err) = remove_dir(resources_dir_for_write).await {
+                error!(%err, "Failed to remove resources dir");
+            }
+            return ();
         }
-        return Err(StatusCode::INTERNAL_SERVER_ERROR);
-    }
 
-    if let Err(err) = child_stdin.shutdown().await {
-        error!(%err, "Failed to write shutdown stdin");
-        if let Err(err) = remove_dir(rescources_dir).await {
-            error!(%err, "Failed to remove resources dir");
+        if let Err(err) = child_stdin.shutdown().await {
+            error!(%err, "Failed to write shutdown stdin");
+            if let Err(err) = remove_dir(resources_dir_for_write).await {
+                error!(%err, "Failed to remove resources dir");
+            }
         }
-        return Err(StatusCode::INTERNAL_SERVER_ERROR);
-    }
 
-    drop(child_stdin);
+        drop(child_stdin);
+    };
+
+    let id_for_sql = id.clone();
+    let resources_dir_for_read_stdout = rescources_dir.clone();
+    let read_std_out_future = async move {
+        if let Err(err) = read_std_out(child_stdout).await {
+            error!(%err, "Failed to read ffmpeg process stdout");
+            if let Err(err) = remove_dir(resources_dir_for_read_stdout).await {
+                error!(%err, "Failed to remove resources dir");
+            }
+            return ();
+        }
+        // Here we have crated the first segement so we can persist the stream
+
+        if let Err(err) = sqlx::query(
+            r#"insert into streams (id, name, description, startTime, width, height) values ($1, $2, $3, $4, $5, $6)"#,
+        )
+        .bind(&id_for_sql)
+        .bind(query.stream_name)
+        .bind(query.stream_description)
+        .bind(chrono::Utc::now())
+        .bind(query.width)
+        .bind(query.height)
+        .execute(&*db)
+        .await
+        .map_err(database_error) {
+            error!(%err, "Failed to insert stream");
+            if let Err(err) = remove_dir(resources_dir_for_read_stdout).await {
+                error!(%err, "Failed to remove resources dir");
+            }
+        };
+        info!("inserted stream");
+    };
+
+    let resources_dir_for_read = rescources_dir.clone();
+    let read_std_err_future = async move {
+        if let Err(err) = read_std_out(child_stderr).await {
+            error!(%err, "Failed to read ffmpeg process sterr");
+            if let Err(err) = remove_dir(resources_dir_for_read).await {
+                error!(%err, "Failed to remove resources dir");
+            }
+        }
+    };
+
+    tokio::join!(
+        read_std_out_future,
+        read_std_err_future,
+        write_to_stdin_future,
+    );
 
     info!("waiting for ffmpeg process to finish");
     let output = match child.wait().await {
@@ -172,6 +240,31 @@ pub async fn upload(
     }
     info!("proccesed file");
     Ok(id)
+}
+
+async fn read_std_out<R: AsyncRead>(buff: R) -> Result<(), anyhow::Error>
+where
+    R: Unpin,
+{
+    let mut buff_reader = io::BufReader::with_capacity(2000 * 1024, buff);
+    let mut line = String::new();
+    loop {
+        match buff_reader.read_line(&mut line).await {
+            Ok(_) => (),
+            Err(err) => {
+                if err.kind() == io::ErrorKind::UnexpectedEof {
+                    return Ok(());
+                }
+                return Err(anyhow!("Failed to read from ffmpeg process {:?}", err));
+            }
+        }
+
+        if line.contains("Opening '000.ts' for writing") || line.contains("progress=end") {
+            info!("Opening '000.ts' for writing");
+            return Ok(());
+        }
+        // println!("we got a line{}", line);
+    }
 }
 
 #[instrument(skip(ws))]

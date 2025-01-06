@@ -38,7 +38,7 @@ export function Nav() {
 
             <div className="flex flex-col gap-2 font-medium text-gray-700">
                 <Link
-                    href={"/stream"}
+                    href={"/"}
                     className="flex cursor-pointer gap-2 hover:text-black"
                 >
                     <ViewAllIcon />
